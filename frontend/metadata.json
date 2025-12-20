@@ -1,0 +1,5 @@
+{
+  "name": "DriverPay",
+  "description": "A modern salary tracker for drivers with earnings analysis.",
+  "requestFramePermissions": []
+}

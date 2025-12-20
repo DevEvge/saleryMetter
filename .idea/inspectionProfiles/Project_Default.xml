@@ -1,0 +1,61 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <list>
+          <option value="aiogram" />
+          <option value="annotated-types" />
+          <option value="anyio" />
+          <option value="branca" />
+          <option value="cachetools" />
+          <option value="certifi" />
+          <option value="charset-normalizer" />
+          <option value="colorama" />
+          <option value="folium" />
+          <option value="geographiclib" />
+          <option value="geopy" />
+          <option value="google-ai-generativelanguage" />
+          <option value="google-api-core" />
+          <option value="google-api-python-client" />
+          <option value="google-auth" />
+          <option value="google-auth-httplib2" />
+          <option value="google-genai" />
+          <option value="google-generativeai" />
+          <option value="googleapis-common-protos" />
+          <option value="grpcio" />
+          <option value="grpcio-status" />
+          <option value="h11" />
+          <option value="httpcore" />
+          <option value="httplib2" />
+          <option value="httpx" />
+          <option value="idna" />
+          <option value="Jinja2" />
+          <option value="MarkupSafe" />
+          <option value="numpy" />
+          <option value="proto-plus" />
+          <option value="protobuf" />
+          <option value="pyaes" />
+          <option value="pyasn1" />
+          <option value="pyasn1_modules" />
+          <option value="pydantic" />
+          <option value="pydantic_core" />
+          <option value="pyparsing" />
+          <option value="requests" />
+          <option value="rsa" />
+          <option value="sniffio" />
+          <option value="Telethon" />
+          <option value="tenacity" />
+          <option value="tqdm" />
+          <option value="typing-inspection" />
+          <option value="typing_extensions" />
+          <option value="uritemplate" />
+          <option value="urllib3" />
+          <option value="websockets" />
+          <option value="xyzservices" />
+          <option value="binance" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
