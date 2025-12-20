@@ -105,7 +105,6 @@ const Home: React.FC = () => {
   ];
 
   const estimatedTotal = calculateTotal();
-  const inputClass = "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
   return (
     <div className="p-4 pt-6 pb-32 max-w-md mx-auto animate-fade-in">
@@ -174,7 +173,7 @@ const Home: React.FC = () => {
                         value={manualIncome}
                         onChange={(e) => setManualIncome(e.target.value)}
                         icon={<Coins size={20} className="text-blue-500" />}
-                        className={`${inputClass} mb-0`}
+                        className="mb-0"
                         autoFocus
                         required
                       />
@@ -189,7 +188,6 @@ const Home: React.FC = () => {
                 value={points}
                 onChange={(e) => setPoints(e.target.value)}
                 icon={<MapPin size={20} />}
-                className={inputClass}
                 required
               />
               <Input
@@ -200,7 +198,6 @@ const Home: React.FC = () => {
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 icon={<Weight size={20} />}
-                className={inputClass}
                 required
               />
               <Input
@@ -211,7 +208,6 @@ const Home: React.FC = () => {
                 value={extraPoints}
                 onChange={(e) => setExtraPoints(e.target.value)}
                 icon={<PlusCircle size={20} />}
-                className={inputClass}
               />
 
               {estimatedTotal > 0 && (
@@ -234,7 +230,6 @@ const Home: React.FC = () => {
                 value={distance}
                 onChange={(e) => setDistance(e.target.value)}
                 icon={<Map size={20} />}
-                className={inputClass}
                 required
               />
               <Input
@@ -245,7 +240,6 @@ const Home: React.FC = () => {
                 value={pricePerKm}
                 onChange={(e) => setPricePerKm(e.target.value)}
                 icon={<CircleDollarSign size={20} />}
-                className={inputClass}
                 required
               />
               

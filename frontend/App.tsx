@@ -8,19 +8,11 @@ import { Tab } from './types';
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>(Tab.HOME);
 
-  // Initialize Theme Logic - Critical Fix
+  // Enforce Dark Mode Permanently
   useEffect(() => {
-    // Check local storage or system preference
-    const savedTheme = localStorage.getItem('theme');
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const isDark = savedTheme === 'dark' || (!savedTheme && systemPrefersDark);
-
-    // Force apply class
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.add('dark');
+    // Optional: Clean up localStorage if it exists to avoid confusion
+    localStorage.removeItem('theme');
   }, []);
 
   const renderContent = () => {
@@ -37,7 +29,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 font-sans selection:bg-blue-500/30 transition-colors duration-300">
+    <div className="min-h-screen bg-slate-900 font-sans selection:bg-blue-500/30">
       <main className="relative z-10 min-h-screen">
         {renderContent()}
       </main>
