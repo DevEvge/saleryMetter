@@ -7,31 +7,60 @@ import {
   Weight, 
   MapPin, 
   Info,
-  Trash2,
-  AlertTriangle
+  Loader
 } from 'lucide-react';
 import { Button, Card, Input } from '../components/ui';
-import { getSettings, saveSettings, clearRecords } from '../services/storageService';
+import { apiService } from '../services/api';
 import { AppSettings } from '../types';
 
+// Mapper from backend to frontend
+const mapToFrontendSettings = (backendSettings: any): AppSettings => ({
+  baseRate: backendSettings.departure_fee,
+  pricePerPoint: backendSettings.cost_per_point,
+  pricePerTon: backendSettings.price_per_tone,
+});
+
+// Mapper from frontend to backend
+const mapToBackendSettings = (frontendSettings: AppSettings) => ({
+  departure_fee: frontendSettings.baseRate,
+  cost_per_point: frontendSettings.pricePerPoint,
+  price_per_tone: frontendSettings.pricePerTon,
+});
+
 const Settings: React.FC = () => {
-  const [settings, setSettings] = useState<AppSettings>({
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [tempSettings, setTempSettings] = useState<AppSettings>({
     pricePerPoint: 0,
     pricePerTon: 0,
     baseRate: 0,
   });
-  
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [tempSettings, setTempSettings] = useState<AppSettings>({ ...settings });
 
   useEffect(() => {
-    // Load Settings
-    setSettings(getSettings());
+    const loadSettings = async () => {
+      setIsLoading(true);
+      try {
+        const backendSettings = await apiService.fetchSettings();
+        const frontendSettings = mapToFrontendSettings(backendSettings);
+        setSettings(frontendSettings);
+        setTempSettings(frontendSettings);
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+        // Optionally set some default error state
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
   }, []);
 
   const openModal = () => {
-    setTempSettings({ ...settings });
-    setIsModalOpen(true);
+    if (settings) {
+      setTempSettings({ ...settings });
+      setIsModalOpen(true);
+    }
   };
 
   const handleTempChange = (field: keyof AppSettings, value: string) => {
@@ -43,31 +72,35 @@ const Settings: React.FC = () => {
 
   const saveChanges = async (e: React.FormEvent) => {
     e.preventDefault();
-    await new Promise(resolve => setTimeout(resolve, 500));
-    saveSettings(tempSettings);
-    setSettings(tempSettings);
-    setIsModalOpen(false);
-  };
-
-  /**
-   * Handler for wiping all application data.
-   * Currently uses localStorage, but designed to be replaced with a DB call.
-   */
-  const handleWipeData = async () => {
-    const isConfirmed = window.confirm(
-      "Увага! Це незворотна дія.\n\nВи дійсно хочете видалити всю історію змін та скинути налаштування?"
-    );
-
-    if (isConfirmed) {
-      // ---------------------------------------------------------
-      // TODO: Replace the code below with your database API call in the future.
-      // Example: await api.deleteAllUserData(userId);
-      // ---------------------------------------------------------
-      
-      clearRecords(); // Clears localStorage
-      window.location.reload(); // Reloads app to reset state
+    setIsLoading(true);
+    try {
+      const backendData = mapToBackendSettings(tempSettings);
+      await apiService.saveSettings(backendData);
+      setSettings(tempSettings);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isLoading && !isModalOpen) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader className="animate-spin text-blue-500" size={48} />
+      </div>
+    );
+  }
+
+  if (!settings) {
+    return (
+      <div className="p-4 pt-8 text-center">
+        <h1 className="text-xl text-red-500">Не вдалося завантажити налаштування.</h1>
+        <p className="text-gray-400">Спробуйте оновити сторінку.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 pt-8 pb-32 max-w-md mx-auto animate-fade-in relative">
@@ -122,25 +155,9 @@ const Settings: React.FC = () => {
             <Edit3 size={18} className="mr-2" />
             Змінити тарифи
         </Button>
-
-        {/* Danger Zone / Testing Area */}
-        <div className="mt-8 pt-8 border-t border-gray-800/50">
-           <div className="flex items-center gap-2 mb-4 px-1 text-red-500/80">
-             <AlertTriangle size={16} />
-             <h3 className="text-xs font-bold uppercase tracking-widest">Тестова зона</h3>
-           </div>
-           <Button 
-              onClick={handleWipeData} 
-              variant="danger"
-              className="h-12 text-base"
-           >
-              <Trash2 size={18} className="mr-2" />
-              Стереть все данные
-           </Button>
-        </div>
       </div>
 
-      {/* MODAL - Fixed Z-Index to 100 */}
+      {/* MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
            <div className="w-full max-w-sm bg-gray-900 border border-gray-700 rounded-3xl p-6 shadow-2xl relative animate-slide-up">
@@ -185,9 +202,9 @@ const Settings: React.FC = () => {
                      className="mb-8"
                   />
 
-                  <Button type="submit" className="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-900/50">
-                     <Save size={20} className="mr-2" />
-                     Зберегти зміни
+                  <Button type="submit" className="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-900/50" disabled={isLoading}>
+                     {isLoading ? <Loader className="animate-spin mr-2" /> : <Save size={20} className="mr-2" />}
+                     {isLoading ? 'Збереження...' : 'Зберегти зміни'}
                   </Button>
               </form>
            </div>

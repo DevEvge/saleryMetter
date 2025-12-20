@@ -3,24 +3,24 @@ import {
   MapPin, 
   Weight, 
   PlusCircle, 
-  Banknote, 
+  Coins,
   Map, 
   CircleDollarSign, 
   Save,
   Truck,
   Route,
   Briefcase,
-  Coins
+  Loader
 } from 'lucide-react';
 import { Input, Button, Card } from '../components/ui';
-import { ShiftRecord, ShiftType, AppSettings } from '../types';
-import { saveRecord, getSettings } from '../services/storageService';
+import { ShiftType } from '../types';
+import { apiService } from '../services/api';
 
 const Home: React.FC = () => {
   const [activeType, setActiveType] = useState<ShiftType>('CITY_MAIN');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [isSaving, setIsSaving] = useState(false);
-  const [settings, setSettings] = useState<AppSettings>({ pricePerPoint: 0, pricePerTon: 0, baseRate: 0 });
+  const [isLoading, setIsLoading] = useState(true);
 
   // Form States
   const [points, setPoints] = useState('');
@@ -30,81 +30,56 @@ const Home: React.FC = () => {
   const [distance, setDistance] = useState('');
   const [pricePerKm, setPricePerKm] = useState('');
 
-  // Load settings on mount
   useEffect(() => {
-    setSettings(getSettings());
+    // Initial data fetch can be added here if needed, for now, just stop loading.
+    setIsLoading(false);
   }, []);
-
-  const calculateTotal = (): number => {
-    const p = parseFloat(points) || 0;
-    const w = parseFloat(weight) || 0;
-    const ep = parseFloat(extraPoints) || 0;
-    const dist = parseFloat(distance) || 0;
-    const price = parseFloat(pricePerKm) || 0;
-    const manualBase = parseFloat(manualIncome) || 0;
-
-    if (activeType === 'INTERCITY') {
-      return dist * price;
-    } 
-    
-    // Logic for CITY_MAIN and CITY_EXTRA
-    const totalPoints = p + ep;
-    const pointsIncome = totalPoints * settings.pricePerPoint;
-    const weightIncome = w * settings.pricePerTon;
-
-    if (activeType === 'CITY_EXTRA') {
-        // Base rate is manually entered by user
-        return manualBase + pointsIncome + weightIncome;
-    } else {
-        // CITY_MAIN: Base rate comes from settings
-        return settings.baseRate + pointsIncome + weightIncome;
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
 
-    const isCity = activeType === 'CITY_MAIN' || activeType === 'CITY_EXTRA';
-
-    const record: ShiftRecord = {
-      id: Date.now().toString(),
+    const dayData = {
       date,
-      type: activeType,
-      totalIncome: calculateTotal(),
-      // Save common fields for both city types
-      points: isCity ? parseFloat(points) || 0 : undefined,
-      weight: isCity ? parseFloat(weight) || 0 : undefined,
-      extraPoints: isCity ? parseFloat(extraPoints) || 0 : undefined,
-      // Manual Base Rate for Extra
-      manualIncome: activeType === 'CITY_EXTRA' ? parseFloat(manualIncome) || 0 : undefined,
-      // Intercity fields
-      distance: activeType === 'INTERCITY' ? parseFloat(distance) || 0 : undefined,
-      pricePerKm: activeType === 'INTERCITY' ? parseFloat(pricePerKm) || 0 : undefined,
+      record_type: activeType,
+      points: parseFloat(points) || 0,
+      additional_points: parseFloat(extraPoints) || 0,
+      weight: parseFloat(weight) || 0,
+      manual_payment: parseFloat(manualIncome) || 0,
+      distance_km: parseFloat(distance) || 0,
+      price_per_km: parseFloat(pricePerKm) || 0,
     };
 
-    saveRecord(record);
-
-    setTimeout(() => {
-      setIsSaving(false);
-      // Don't clear date, keep it for convenience
+    try {
+      await apiService.saveDay(dayData);
+      // Reset form after successful save
       setPoints('');
       setWeight('');
       setExtraPoints('');
       setManualIncome('');
       setDistance('');
       setPricePerKm('');
-    }, 800);
+    } catch (error) {
+      console.error("Failed to save day:", error);
+      // Handle error (e.g., show a notification)
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  // Renamed Tabs
   const tabs: { id: ShiftType; label: string; icon: any }[] = [
     { id: 'CITY_MAIN', label: 'Маршрут', icon: Route },
     { id: 'CITY_EXTRA', label: 'Додатковий', icon: Briefcase },
     { id: 'INTERCITY', label: 'Міжмісто', icon: Truck },
   ];
 
-  const estimatedTotal = calculateTotal();
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader className="animate-spin text-blue-500" size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 pt-6 pb-32 max-w-md mx-auto animate-fade-in">
@@ -154,14 +129,6 @@ const Home: React.FC = () => {
           {/* CITY MAIN & EXTRA share common inputs */}
           {(activeType === 'CITY_MAIN' || activeType === 'CITY_EXTRA') && (
             <div className="animate-fade-in space-y-4">
-               {/* Warning only for MAIN if settings missing */}
-               {activeType === 'CITY_MAIN' && settings.baseRate === 0 && settings.pricePerPoint === 0 && (
-                   <div className="bg-orange-50 dark:bg-yellow-500/10 border border-orange-200 dark:border-yellow-500/20 text-orange-600 dark:text-yellow-500 p-3 rounded-xl text-xs mb-4">
-                       ⚠️ Налаштуйте тарифи у розділі "Налаштування".
-                   </div>
-               )}
-
-               {/* Manual Base Rate Input for Extra */}
                {activeType === 'CITY_EXTRA' && (
                   <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/30">
                      <p className="text-xs text-blue-600 dark:text-blue-300 font-bold uppercase tracking-wider mb-3">Оплата за виїзд</p>
@@ -209,13 +176,6 @@ const Home: React.FC = () => {
                 onChange={(e) => setExtraPoints(e.target.value)}
                 icon={<PlusCircle size={20} />}
               />
-
-              {estimatedTotal > 0 && (
-                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700/50 flex justify-between items-center transition-colors">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm">Прогноз:</span>
-                    <span className="text-xl font-bold text-emerald-600 dark:text-green-400">{estimatedTotal.toFixed(0)} ₴</span>
-                </div>
-              )}
             </div>
           )}
 
@@ -242,15 +202,6 @@ const Home: React.FC = () => {
                 icon={<CircleDollarSign size={20} />}
                 required
               />
-              
-              {estimatedTotal > 0 && (
-                <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700 text-center animate-pulse-once transition-colors">
-                  <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider mb-1">Розрахунок</p>
-                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                    {estimatedTotal.toFixed(0)} ₴
-                  </p>
-                </div>
-              )}
             </div>
           )}
         </Card>
@@ -263,7 +214,7 @@ const Home: React.FC = () => {
           >
             {isSaving ? (
               <span className="flex items-center gap-2">
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <Loader className="animate-spin mr-2" />
                 Збереження...
               </span>
             ) : (

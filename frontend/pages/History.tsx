@@ -11,13 +11,22 @@ import {
   Map,
   Loader2
 } from 'lucide-react';
-import { ShiftRecord } from '../types';
-import { getRecords, deleteRecord } from '../services/storageService';
+import { apiService } from '../services/api';
+
+// Simplified type for what we get from the backend
+interface WorkDay {
+  id: number;
+  date: string;
+  record_type: 'CITY_MAIN' | 'CITY_EXTRA' | 'INTERCITY';
+  total_salary: number;
+  distance_km?: number;
+  points?: number;
+}
 
 const History: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [history, setHistory] = useState<ShiftRecord[]>([]);
-  const [stats, setStats] = useState({ income: 0, km: 0, weight: 0 });
+  const [history, setHistory] = useState<WorkDay[]>([]);
+  const [stats, setStats] = useState({ total_salary: 0, total_km: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = async () => {
@@ -26,31 +35,15 @@ const History: React.FC = () => {
     const month = currentDate.getMonth() + 1;
 
     try {
-        // Simulate a tiny delay for smoother transition
-        await new Promise(r => setTimeout(r, 400)); 
-
-        const allRecords = getRecords();
-        const filtered = allRecords.filter(r => {
-            const d = new Date(r.date);
-            return d.getFullYear() === year && (d.getMonth() + 1) === month;
-        });
-        
-        filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        const aggregations = filtered.reduce((acc, curr) => {
-            return {
-                income: acc.income + curr.totalIncome,
-                km: acc.km + (curr.distance || 0),
-                weight: acc.weight + (curr.weight || 0)
-            };
-        }, { income: 0, km: 0, weight: 0 });
-
-        setHistory(filtered);
-        setStats(aggregations);
+      const data = await apiService.fetchDays(year, month);
+      setHistory(data.history || []);
+      setStats({ total_salary: data.total_salary || 0, total_km: data.total_km || 0 });
     } catch (e) {
-        console.error("Error fetching stats:", e);
+      console.error("Error fetching stats:", e);
+      setHistory([]);
+      setStats({ total_salary: 0, total_km: 0 });
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -64,11 +57,16 @@ const History: React.FC = () => {
     setCurrentDate(newDate);
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm("Ви дійсно хочете видалити цей запис?")) {
-        deleteRecord(id);
-        fetchData();
+      try {
+        await apiService.deleteDay(id);
+        fetchData(); // Refresh data after deletion
+      } catch (error) {
+        console.error("Failed to delete day:", error);
+        alert("Не вдалося видалити запис.");
+      }
     }
   };
 
@@ -80,27 +78,25 @@ const History: React.FC = () => {
   const getDayInfo = (dateStr: string) => {
     const date = new Date(dateStr);
     return {
-        day: date.getDate(),
-        weekday: date.toLocaleString('uk-UA', { weekday: 'short' })
+        day: date.getUTCDate(), // Use UTC date to avoid timezone issues
+        weekday: date.toLocaleString('uk-UA', { weekday: 'short', timeZone: 'UTC' })
     };
   };
 
-  const getRecordMeta = (record: ShiftRecord) => {
-    switch(record.type) {
+  const getRecordMeta = (record: WorkDay) => {
+    switch(record.record_type) {
         case 'INTERCITY': 
             return { 
                 icon: Truck, 
                 label: 'Міжмісто', 
                 color: 'text-purple-600 dark:text-purple-400', 
-                bg: 'bg-purple-100 dark:bg-purple-500/10',
-                detail: `${record.distance} км`
+                detail: `${record.distance_km} км`
             };
         case 'CITY_EXTRA': 
             return { 
                 icon: Briefcase, 
                 label: 'Додатковий', 
                 color: 'text-emerald-600 dark:text-emerald-400', 
-                bg: 'bg-emerald-100 dark:bg-emerald-500/10',
                 detail: 'Змішаний'
             };
         default: // CITY_MAIN
@@ -108,7 +104,6 @@ const History: React.FC = () => {
                 icon: MapPin, 
                 label: 'Маршрут', 
                 color: 'text-blue-600 dark:text-blue-400', 
-                bg: 'bg-blue-100 dark:bg-blue-500/10',
                 detail: `${record.points} тчк`
             };
     }
@@ -153,7 +148,7 @@ const History: React.FC = () => {
             <p className="text-blue-100 text-xs font-bold uppercase tracking-widest mb-1">Всього за місяць</p>
             <div className="flex items-baseline gap-1 mb-6 min-h-[40px]">
                 <span className="text-4xl font-bold tracking-tight">
-                    {stats.income.toLocaleString('uk-UA')}
+                    {stats.total_salary.toLocaleString('uk-UA')}
                 </span>
                 <span className="text-xl font-medium text-blue-200">₴</span>
             </div>
@@ -165,17 +160,7 @@ const History: React.FC = () => {
                     </div>
                     <div>
                         <p className="text-[10px] text-blue-100 uppercase font-bold">Пробіг</p>
-                        <p className="font-bold text-sm">{stats.km} км</p>
-                    </div>
-                </div>
-                <div className="w-px bg-white/10 h-8 self-center" />
-                <div className="flex-1 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                        <Weight size={16} className="text-blue-100" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] text-blue-100 uppercase font-bold">Вага</p>
-                        <p className="font-bold text-sm">{stats.weight.toFixed(1)} т</p>
+                        <p className="font-bold text-sm">{stats.total_km} км</p>
                     </div>
                 </div>
             </div>
@@ -229,7 +214,7 @@ const History: React.FC = () => {
                             {/* Right: Price & Action */}
                             <div className="flex flex-col items-end gap-2">
                                 <span className="text-lg font-bold text-gray-900 dark:text-white tracking-tight transition-colors">
-                                    {record.totalIncome} <span className="text-sm font-normal text-gray-400">₴</span>
+                                    {record.total_salary} <span className="text-sm font-normal text-gray-400">₴</span>
                                 </span>
                                 <button 
                                     onClick={(e) => handleDelete(record.id, e)}

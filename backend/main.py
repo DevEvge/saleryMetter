@@ -1,7 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine, Column, Integer, Float, String, Date, desc
+from sqlalchemy import create_engine, Column, Integer, Float, String, Date, desc, BigInteger
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel
@@ -22,6 +22,7 @@ class Settings(Base):
     """Настройки тарифов (по умолчанию)"""
     __tablename__ = "settings"
     id = Column(Integer, primary_key=True)
+    telegram_id = Column(BigInteger, unique=True, index=True)
     cost_per_point = Column(Integer, default=0)  # Цена за точку (Город)
     departure_fee = Column(Integer, default=0)  # Ставка за выезд (Город - Основной)
     price_per_tone = Column(Float, default=0.0)  # Цена за тонну (Город)
@@ -31,6 +32,7 @@ class WorkDay(Base):
     """Единая таблица для всех видов работ"""
     __tablename__ = "work_days"
     id = Column(Integer, primary_key=True, index=True)
+    telegram_id = Column(BigInteger, index=True)
     date = Column(Date, index=True)
 
     # Тип записи:
@@ -100,22 +102,22 @@ def get_db():
 # --- API ---
 
 @app.get("/api/settings")
-def get_settings(db: Session = Depends(get_db)):
+def get_settings(db: Session = Depends(get_db), x_telegram_id: int = Header(...)):
     """Получить текущие настройки. Если нет - создать нули."""
-    settings = db.query(Settings).first()
+    settings = db.query(Settings).filter(Settings.telegram_id == x_telegram_id).first()
     if not settings:
-        settings = Settings(cost_per_point=0, departure_fee=0, price_per_tone=0.0)
+        settings = Settings(telegram_id=x_telegram_id, cost_per_point=0, departure_fee=0, price_per_tone=0.0)
         db.add(settings)
         db.commit()
     return settings
 
 
 @app.put("/api/settings")
-def update_settings(data: SettingsUpdate, db: Session = Depends(get_db)):
+def update_settings(data: SettingsUpdate, db: Session = Depends(get_db), x_telegram_id: int = Header(...)):
     """Обновить настройки"""
-    settings = db.query(Settings).first()
+    settings = db.query(Settings).filter(Settings.telegram_id == x_telegram_id).first()
     if not settings:
-        settings = Settings()
+        settings = Settings(telegram_id=x_telegram_id)
         db.add(settings)
 
     settings.cost_per_point = data.cost_per_point
@@ -126,9 +128,11 @@ def update_settings(data: SettingsUpdate, db: Session = Depends(get_db)):
 
 
 @app.post("/api/days")
-def add_work_day(data: WorkDayCreate, db: Session = Depends(get_db)):
+def add_work_day(data: WorkDayCreate, db: Session = Depends(get_db), x_telegram_id: int = Header(...)):
     """Сохранение рабочего дня (Любой тип)"""
-    settings = db.query(Settings).first()
+    settings = db.query(Settings).filter(Settings.telegram_id == x_telegram_id).first()
+    if not settings:
+        raise HTTPException(status_code=404, detail="Settings not found for this user")
 
     salary = 0.0
     fixed_part = 0.0
@@ -154,6 +158,7 @@ def add_work_day(data: WorkDayCreate, db: Session = Depends(get_db)):
 
     # Создаем запись
     new_day = WorkDay(
+        telegram_id=x_telegram_id,
         date=data.date,
         record_type=data.record_type,
         points=data.points,
@@ -171,7 +176,7 @@ def add_work_day(data: WorkDayCreate, db: Session = Depends(get_db)):
 
 
 @app.get("/api/stats/{year}/{month}")
-def get_stats(year: int, month: int, db: Session = Depends(get_db)):
+def get_stats(year: int, month: int, db: Session = Depends(get_db), x_telegram_id: int = Header(...)):
     """Статистика за месяц + список дней"""
 
     # Фильтруем по году и месяцу (SQLite style)
@@ -180,7 +185,7 @@ def get_stats(year: int, month: int, db: Session = Depends(get_db)):
     end_date = f"{year}-{month:02d}-31"
 
     days = db.query(WorkDay) \
-        .filter(WorkDay.date.between(start_date, end_date)) \
+        .filter(WorkDay.telegram_id == x_telegram_id, WorkDay.date.between(start_date, end_date)) \
         .order_by(desc(WorkDay.date)) \
         .all()
 
@@ -196,13 +201,14 @@ def get_stats(year: int, month: int, db: Session = Depends(get_db)):
 
 
 @app.delete("/api/days/{day_id}")
-def delete_day(day_id: int, db: Session = Depends(get_db)):
+def delete_day(day_id: int, db: Session = Depends(get_db), x_telegram_id: int = Header(...)):
     """Удалить запись (если ошибся)"""
-    record = db.query(WorkDay).filter(WorkDay.id == day_id).first()
+    record = db.query(WorkDay).filter(WorkDay.id == day_id, WorkDay.telegram_id == x_telegram_id).first()
     if record:
         db.delete(record)
         db.commit()
-    return {"status": "deleted"}
+        return {"status": "deleted"}
+    raise HTTPException(status_code=404, detail="Record not found")
 
 
 # Раздача фронта (в самом конце)
