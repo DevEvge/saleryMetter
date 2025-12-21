@@ -7,7 +7,9 @@ import {
   Weight, 
   MapPin, 
   Info,
-  Loader
+  Loader,
+  AlertTriangle,
+  Trash2
 } from 'lucide-react';
 import { Button, Card, Input } from '../components/ui';
 import { apiService } from '../services/api';
@@ -47,7 +49,6 @@ const Settings: React.FC = () => {
         setTempSettings(frontendSettings);
       } catch (error) {
         console.error("Failed to load settings:", error);
-        // Optionally set some default error state
       } finally {
         setIsLoading(false);
       }
@@ -85,6 +86,25 @@ const Settings: React.FC = () => {
     }
   };
 
+  const handleWipeData = async () => {
+    const isConfirmed = window.confirm(
+      "УВАГА! ЦЕ НЕЗВОРОТНА ДІЯ.\n\nВи дійсно хочете видалити ВСЮ історію змін та скинути ВСІ налаштування для вашого акаунту?"
+    );
+
+    if (isConfirmed) {
+      setIsLoading(true);
+      try {
+        await apiService.wipeAllData();
+        // Перезагружаем страницу, чтобы все обновилось с нуля
+        window.location.reload();
+      } catch (error) {
+        console.error("Failed to wipe data:", error);
+        alert("Не вдалося видалити дані. Спробуйте ще раз.");
+        setIsLoading(false);
+      }
+    }
+  };
+
   if (isLoading && !isModalOpen) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -95,7 +115,7 @@ const Settings: React.FC = () => {
 
   if (!settings) {
     return (
-      <div className="p-4 pt-8 text-center">
+      <div className="p-4 pt-24 text-center">
         <h1 className="text-xl text-red-500">Не вдалося завантажити налаштування.</h1>
         <p className="text-gray-400">Спробуйте оновити сторінку.</p>
       </div>
@@ -103,7 +123,7 @@ const Settings: React.FC = () => {
   }
 
   return (
-    <div className="p-4 pt-8 pb-32 max-w-md mx-auto animate-fade-in relative">
+    <div className="p-4 pt-24 pb-32 max-w-md mx-auto animate-fade-in relative">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Налаштування</h1>
         <p className="text-gray-400">Профіль та параметри</p>
@@ -111,7 +131,6 @@ const Settings: React.FC = () => {
 
       <div className="flex flex-col gap-6">
         
-        {/* Info Block (Read Only) */}
         <div>
            <div className="flex items-center gap-2 mb-3 px-1">
              <Info size={16} className="text-gray-500" />
@@ -155,6 +174,23 @@ const Settings: React.FC = () => {
             <Edit3 size={18} className="mr-2" />
             Змінити тарифи
         </Button>
+
+        {/* Danger Zone */}
+        <div className="mt-8 pt-8 border-t border-gray-800/50">
+           <div className="flex items-center gap-2 mb-4 px-1 text-red-500/80">
+             <AlertTriangle size={16} />
+             <h3 className="text-xs font-bold uppercase tracking-widest">Тестова зона</h3>
+           </div>
+           <Button 
+              onClick={handleWipeData} 
+              variant="danger"
+              className="h-12 text-base"
+              disabled={isLoading}
+           >
+              {isLoading ? <Loader className="animate-spin mr-2" /> : <Trash2 size={18} className="mr-2" />}
+              Стереть все данные
+           </Button>
+        </div>
       </div>
 
       {/* MODAL */}

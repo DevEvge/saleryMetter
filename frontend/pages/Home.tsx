@@ -10,29 +10,49 @@ import {
   Truck,
   Route,
   Briefcase,
-  Loader
+  Loader,
+  CheckCircle,
+  Calendar
 } from 'lucide-react';
 import { Input, Button, Card } from '../components/ui';
 import { ShiftType } from '../types';
 import { apiService } from '../services/api';
+
+// Backend settings structure
+interface BackendSettings {
+  cost_per_point: number;
+  departure_fee: number;
+  price_per_tone: number;
+}
 
 const Home: React.FC = () => {
   const [activeType, setActiveType] = useState<ShiftType>('CITY_MAIN');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [settings, setSettings] = useState<BackendSettings | null>(null);
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
 
   // Form States
   const [points, setPoints] = useState('');
   const [weight, setWeight] = useState('');
   const [extraPoints, setExtraPoints] = useState('');
-  const [manualIncome, setManualIncome] = useState(''); // Used as Manual Base Rate for CITY_EXTRA
+  const [manualIncome, setManualIncome] = useState('');
   const [distance, setDistance] = useState('');
   const [pricePerKm, setPricePerKm] = useState('');
 
   useEffect(() => {
-    // Initial data fetch can be added here if needed, for now, just stop loading.
-    setIsLoading(false);
+    const loadInitialData = async () => {
+      try {
+        const fetchedSettings = await apiService.fetchSettings();
+        setSettings(fetchedSettings);
+      } catch (error) {
+        console.error("Failed to fetch settings on home page:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadInitialData();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,16 +72,18 @@ const Home: React.FC = () => {
 
     try {
       await apiService.saveDay(dayData);
-      // Reset form after successful save
+      // Reset form and show success alert
       setPoints('');
       setWeight('');
       setExtraPoints('');
       setManualIncome('');
       setDistance('');
       setPricePerKm('');
+      setShowSuccessAlert(true);
+      setTimeout(() => setShowSuccessAlert(false), 2000); // Hide after 2 seconds
     } catch (error) {
       console.error("Failed to save day:", error);
-      // Handle error (e.g., show a notification)
+      // Handle error (e.g., show an error notification)
     } finally {
       setIsSaving(false);
     }
@@ -73,6 +95,21 @@ const Home: React.FC = () => {
     { id: 'INTERCITY', label: 'Міжмісто', icon: Truck },
   ];
 
+  const formatDateForDisplay = (dateString: string) => {
+    const dateObj = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (dateObj.toDateString() === today.toDateString()) {
+      return 'Сьогодні';
+    }
+    if (dateObj.toDateString() === yesterday.toDateString()) {
+      return 'Вчора';
+    }
+    return dateObj.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -82,16 +119,32 @@ const Home: React.FC = () => {
   }
 
   return (
-    <div className="p-4 pt-6 pb-32 max-w-md mx-auto animate-fade-in">
+    <div className="p-4 pt-24 pb-32 max-w-md mx-auto animate-fade-in relative">
+      {/* Success Alert */}
+      {showSuccessAlert && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-green-500/90 text-white py-3 px-6 rounded-full shadow-lg animate-fade-in-down">
+          <CheckCircle size={20} />
+          <span className="font-bold">Збережено!</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white transition-colors">Нова зміна</h1>
-        <input 
-          type="date" 
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm py-2 px-3 rounded-xl border border-gray-200 dark:border-gray-700 outline-none focus:border-blue-500 shadow-sm transition-colors"
-        />
+        
+        {/* Custom Date Picker Button */}
+        <div className="relative">
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm py-2 px-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            <Calendar size={16} className="text-blue-500" />
+            <span className="font-medium">{formatDateForDisplay(date)}</span>
+          </div>
+          <input 
+            type="date" 
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
+        </div>
       </div>
 
       {/* Segmented Control */}
@@ -126,9 +179,14 @@ const Home: React.FC = () => {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Card className="min-h-[280px]">
-          {/* CITY MAIN & EXTRA share common inputs */}
           {(activeType === 'CITY_MAIN' || activeType === 'CITY_EXTRA') && (
             <div className="animate-fade-in space-y-4">
+               {activeType === 'CITY_MAIN' && settings && settings.departure_fee === 0 && settings.cost_per_point === 0 && (
+                   <div className="bg-orange-50 dark:bg-yellow-500/10 border border-orange-200 dark:border-yellow-500/20 text-orange-600 dark:text-yellow-500 p-3 rounded-xl text-xs mb-4">
+                       ⚠️ Налаштуйте тарифи у розділі "Налаштування".
+                   </div>
+               )}
+
                {activeType === 'CITY_EXTRA' && (
                   <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/30">
                      <p className="text-xs text-blue-600 dark:text-blue-300 font-bold uppercase tracking-wider mb-3">Оплата за виїзд</p>
@@ -179,7 +237,6 @@ const Home: React.FC = () => {
             </div>
           )}
 
-          {/* INTERCITY */}
           {activeType === 'INTERCITY' && (
             <div className="animate-fade-in space-y-4">
               <Input

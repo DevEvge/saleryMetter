@@ -1,6 +1,7 @@
 import os
 import uvicorn
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI, Depends, HTTPException, Header, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, Float, String, Date, desc, BigInteger
@@ -59,12 +60,15 @@ class WorkDayCreate(BaseModel):
 # --- APP ---
 app = FastAPI()
 
+# --- MIDDLEWARE ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*", "X-Telegram-ID"],
 )
+
 
 def get_db():
     db = SessionLocal()
@@ -72,13 +76,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-def get_current_user_id(x_telegram_id: str = Header(...)):
-    if not x_telegram_id:
-        # Для тестов в браузере (если нет заголовка) можно вернуть 1
-        # Но по-хорошему фронт должен слать ID.
-        return 1
-    return int(x_telegram_id)
 
 # --- API ---
 @app.get("/api/settings")
@@ -156,8 +153,18 @@ def delete_day(day_id: int, db: Session = Depends(get_db), x_telegram_id: int = 
         return {"status": "deleted"}
     raise HTTPException(status_code=404, detail="Record not found")
 
+@app.delete("/api/wipe")
+def wipe_all_user_data(db: Session = Depends(get_db), x_telegram_id: int = Header(1)):
+    """Полностью удаляет все данные пользователя (настройки и историю)."""
+    
+    db.query(WorkDay).filter(WorkDay.telegram_id == x_telegram_id).delete()
+    db.query(Settings).filter(Settings.telegram_id == x_telegram_id).delete()
+    
+    db.commit()
+    
+    return {"status": "all user data wiped"}
+
 # --- СТАТИКА (Front-End) ---
-# Находим папку static правильно, где бы ни запускали скрипт
 script_dir = os.path.dirname(os.path.abspath(__file__))
 static_directory = os.path.join(script_dir, "static")
 
@@ -169,10 +176,10 @@ else:
 
 # --- ЗАПУСК ---
 if __name__ == "__main__":
-    # Сначала запускаем Ngrok
     try:
         from pyngrok import ngrok
-        # Открываем туннель на порт 8000
+        
+        # Простое подключение без лишних параметров
         public_url = ngrok.connect(8000).public_url
         print("\n" + "="*60)
         print(f"🚀 ТВОЯ ССЫЛКА ДЛЯ ТЕЛЕГРАМА: {public_url}")
@@ -181,5 +188,4 @@ if __name__ == "__main__":
         print(f"⚠️ Ошибка запуска Ngrok: {e}")
         print("Запускаю только локальный сервер...")
 
-    # Потом запускаем сам сервер
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
