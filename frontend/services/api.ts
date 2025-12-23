@@ -1,4 +1,4 @@
-const BASE_URL = ''; // Используем относительный путь, так как фронт и бэк на одном домене
+const BASE_URL = 'https://Retbert.pythonanywhere.com';
 
 /**
  * Получает ID пользователя Telegram.

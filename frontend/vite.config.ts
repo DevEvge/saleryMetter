@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
     return {
       build: {
         // Выходная директория для сборки
-        outDir: '../backend/static',
+        outDir: 'dist',
         // Очищать ли директорию перед сборкой
         emptyOutDir: true,
       },
