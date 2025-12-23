@@ -3,35 +3,27 @@ import {
   MapPin, 
   Weight, 
   PlusCircle, 
-  Coins,
   Map, 
   CircleDollarSign, 
   Save,
   Truck,
   Route,
   Briefcase,
-  Loader,
-  CheckCircle,
-  Calendar
+  Coins,
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
 import { Input, Button, Card } from '../components/ui';
-import { ShiftType } from '../types';
-import { apiService } from '../services/api';
-
-// Backend settings structure
-interface BackendSettings {
-  cost_per_point: number;
-  departure_fee: number;
-  price_per_tone: number;
-}
+import { ShiftType, AppSettings } from '../types';
+import * as apiService from '../services/api';
 
 const Home: React.FC = () => {
   const [activeType, setActiveType] = useState<ShiftType>('CITY_MAIN');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [isSaving, setIsSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [settings, setSettings] = useState<BackendSettings | null>(null);
-  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
 
   // Form States
   const [points, setPoints] = useState('');
@@ -42,22 +34,29 @@ const Home: React.FC = () => {
   const [pricePerKm, setPricePerKm] = useState('');
 
   useEffect(() => {
-    const loadInitialData = async () => {
+    const loadSettings = async () => {
+      setIsLoading(true);
       try {
-        const fetchedSettings = await apiService.fetchSettings();
-        setSettings(fetchedSettings);
+        const backendSettings = await apiService.fetchSettings();
+        const frontendSettings = {
+          baseRate: backendSettings.departure_fee,
+          pricePerPoint: backendSettings.cost_per_point,
+          pricePerTon: backendSettings.price_per_tone,
+        };
+        setSettings(frontendSettings);
       } catch (error) {
-        console.error("Failed to fetch settings on home page:", error);
+        console.error("Failed to load settings:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    loadInitialData();
+    loadSettings();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    setShowSuccess(false);
 
     const dayData = {
       date,
@@ -72,18 +71,19 @@ const Home: React.FC = () => {
 
     try {
       await apiService.saveDay(dayData);
-      // Reset form and show success alert
+      
       setPoints('');
       setWeight('');
       setExtraPoints('');
       setManualIncome('');
       setDistance('');
       setPricePerKm('');
-      setShowSuccessAlert(true);
-      setTimeout(() => setShowSuccessAlert(false), 2000); // Hide after 2 seconds
+      
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
     } catch (error) {
       console.error("Failed to save day:", error);
-      // Handle error (e.g., show an error notification)
+      alert("Не вдалося зберегти зміну.");
     } finally {
       setIsSaving(false);
     }
@@ -95,60 +95,37 @@ const Home: React.FC = () => {
     { id: 'INTERCITY', label: 'Міжмісто', icon: Truck },
   ];
 
-  const formatDateForDisplay = (dateString: string) => {
-    const dateObj = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-
-    if (dateObj.toDateString() === today.toDateString()) {
-      return 'Сьогодні';
-    }
-    if (dateObj.toDateString() === yesterday.toDateString()) {
-      return 'Вчора';
-    }
-    return dateObj.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
-  };
-
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader className="animate-spin text-blue-500" size={48} />
+      <div className="flex-1 flex justify-center items-center h-screen">
+        <Loader2 size={48} className="animate-spin text-blue-600 dark:text-blue-400" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 pt-24 pb-32 max-w-md mx-auto animate-fade-in relative">
-      {/* Success Alert */}
-      {showSuccessAlert && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-green-500/90 text-white py-3 px-6 rounded-full shadow-lg animate-fade-in-down">
-          <CheckCircle size={20} />
-          <span className="font-bold">Збережено!</span>
+    <div className="p-4 pt-0 pb-32 max-w-md mx-auto animate-fade-in relative">
+      
+      {showSuccess && (
+        <div className="absolute top-0 left-4 right-4 z-50 animate-slide-up">
+          <div className="bg-emerald-500 text-white px-4 py-3 rounded-2xl shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2">
+            <CheckCircle2 size={20} />
+            <span className="font-bold">Зміни збережено!</span>
+          </div>
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 mt-2">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white transition-colors">Нова зміна</h1>
-        
-        {/* Custom Date Picker Button */}
-        <div className="relative">
-          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm py-2 px-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-            <Calendar size={16} className="text-blue-500" />
-            <span className="font-medium">{formatDateForDisplay(date)}</span>
-          </div>
-          <input 
-            type="date" 
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          />
-        </div>
+        <input 
+          type="date" 
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm py-2 px-3 rounded-xl border border-gray-200 dark:border-gray-700 outline-none focus:border-blue-500 shadow-sm transition-colors"
+        />
       </div>
 
-      {/* Segmented Control */}
-      <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl flex mb-8 border border-gray-200 dark:border-gray-700/50 relative overflow-hidden transition-colors">
+      <div className="bg-gray-200 dark:bg-gray-800 p-1 rounded-2xl flex mb-8 border border-gray-300 dark:border-gray-700/50 relative overflow-hidden transition-colors">
          <div 
            className="absolute top-1 bottom-1 bg-white dark:bg-gradient-to-r dark:from-blue-600 dark:to-indigo-600 rounded-xl transition-all duration-300 ease-out shadow-sm dark:shadow-lg dark:shadow-blue-900/50 border border-gray-100 dark:border-none"
            style={{
@@ -181,7 +158,7 @@ const Home: React.FC = () => {
         <Card className="min-h-[280px]">
           {(activeType === 'CITY_MAIN' || activeType === 'CITY_EXTRA') && (
             <div className="animate-fade-in space-y-4">
-               {activeType === 'CITY_MAIN' && settings && settings.departure_fee === 0 && settings.cost_per_point === 0 && (
+               {activeType === 'CITY_MAIN' && settings && settings.baseRate === 0 && settings.pricePerPoint === 0 && (
                    <div className="bg-orange-50 dark:bg-yellow-500/10 border border-orange-200 dark:border-yellow-500/20 text-orange-600 dark:text-yellow-500 p-3 rounded-xl text-xs mb-4">
                        ⚠️ Налаштуйте тарифи у розділі "Налаштування".
                    </div>
@@ -267,11 +244,11 @@ const Home: React.FC = () => {
           <Button 
             type="submit" 
             disabled={isSaving} 
-            className="h-16 text-xl bg-blue-600 dark:bg-gradient-to-r dark:from-emerald-500 dark:to-teal-600 hover:bg-blue-500 dark:hover:from-emerald-400 dark:hover:to-teal-500 shadow-blue-500/30 dark:shadow-emerald-900/40"
+            className="h-16 text-xl bg-blue-600 dark:bg-gradient-to-r dark:from-emerald-500 dark:to-teal-600 hover:bg-blue-500 dark:hover:from-emerald-400 dark:hover:to-teal-500 shadow-blue-500/30 dark:shadow-emerald-900/40 transition-all"
           >
             {isSaving ? (
               <span className="flex items-center gap-2">
-                <Loader className="animate-spin mr-2" />
+                <Loader2 className="animate-spin mr-2" />
                 Збереження...
               </span>
             ) : (

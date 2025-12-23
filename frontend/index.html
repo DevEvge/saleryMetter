@@ -3,15 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#0f172a" />
     <title>DriverPay UAH</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              // Ensure we have specific dark shades available if needed
+            }
+          }
+        }
+      }
+    </script>
     <style>
       /* Smooth scrolling and iOS-like tap highlight removal */
       html, body {
         -webkit-tap-highlight-color: transparent;
         overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile web app */
-        background-color: #111827; /* gray-900 */
+        transition: background-color 0.3s ease;
+        background-color: #0f172a; /* Force dark background immediately (slate-900) */
       }
       /* Hide scrollbar for clean UI */
       ::-webkit-scrollbar {
@@ -32,7 +46,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-900 text-white min-h-screen">
+  <body class="bg-gray-100 dark:bg-slate-900 text-gray-900 dark:text-white min-h-screen">
     <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>

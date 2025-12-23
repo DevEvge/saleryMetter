@@ -5,16 +5,15 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
+      build: {
+        // Выходная директория для сборки
+        outDir: '../backend/static',
+        // Очищать ли директорию перед сборкой
+        emptyOutDir: true,
+      },
       server: {
         port: 3000,
         host: '0.0.0.0',
-        proxy: {
-          // Перенаправляем все запросы, начинающиеся с /api, на бэкенд
-          '/api': {
-            target: 'http://localhost:8000', // Адрес вашего Python-сервера
-            changeOrigin: true, // Необходимо для виртуальных хостов
-          },
-        }
       },
       plugins: [react()],
       define: {

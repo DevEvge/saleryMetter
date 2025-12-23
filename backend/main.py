@@ -140,9 +140,21 @@ def get_stats(year: int, month: int, db: Session = Depends(get_db), x_telegram_i
     start_date = f"{year}-{month:02d}-01"
     end_date = f"{year}-{month:02d}-31"
     days = db.query(WorkDay).filter(WorkDay.telegram_id == x_telegram_id).filter(WorkDay.date.between(start_date, end_date)).order_by(desc(WorkDay.date)).all()
+    
     total_salary = sum(d.total_salary for d in days)
     total_km = sum(d.distance_km for d in days)
-    return {"total_salary": total_salary, "total_km": total_km, "history": days}
+    total_points = sum(d.points + d.additional_points for d in days)
+    total_weight = sum(d.weight for d in days)
+    total_days = len(days)
+
+    return {
+        "total_salary": total_salary, 
+        "total_km": total_km, 
+        "total_points": total_points,
+        "total_weight": total_weight,
+        "total_days": total_days,
+        "history": days
+    }
 
 @app.delete("/api/days/{day_id}")
 def delete_day(day_id: int, db: Session = Depends(get_db), x_telegram_id: int = Header(1)):
