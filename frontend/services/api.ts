@@ -1,4 +1,4 @@
-const BASE_URL = 'https://Retbert.pythonanywhere.com';
+const BASE_URL = 'https://retbert.pythonanywhere.com';
 
 /**
  * Получает ID пользователя Telegram.
