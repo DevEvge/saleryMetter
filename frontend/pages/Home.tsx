@@ -106,7 +106,7 @@ const Home: React.FC = () => {
   return (
     <div
       className="p-4 pb-32 max-w-md mx-auto animate-fade-in relative"
-      style={{ paddingTop: `calc(env(safe-area-inset-top, 1rem) + 1rem)` }}
+      style={{ paddingTop: `env(safe-area-inset-top, 0px)` }}
     >
       
       {showSuccess && (

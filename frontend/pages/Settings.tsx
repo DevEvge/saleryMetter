@@ -116,7 +116,7 @@ const Settings: React.FC = () => {
     return (
       <div
         className="p-4 text-center"
-        style={{ paddingTop: `calc(env(safe-area-inset-top, 1rem) + 1rem)` }}
+        style={{ paddingTop: `env(safe-area-inset-top, 0px)` }}
       >
         <h1 className="text-xl text-red-500">Не вдалося завантажити налаштування.</h1>
         <p className="text-gray-400">Спробуйте оновити сторінку.</p>
@@ -127,7 +127,7 @@ const Settings: React.FC = () => {
   return (
     <div
       className="p-4 pb-32 max-w-md mx-auto animate-fade-in relative"
-      style={{ paddingTop: `calc(env(safe-area-inset-top, 1rem) + 1rem)` }}
+      style={{ paddingTop: `env(safe-area-inset-top, 0px)` }}
     >
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 transition-colors">Налаштування</h1>
