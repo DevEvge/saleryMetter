@@ -5,68 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
     <meta name="theme-color" content="#0f172a"/>
     <title>DriverPay</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-
     <script>
         tailwind.config = {
           darkMode: 'class',
-          theme: {
-            extend: {
-              colors: {
-                // Тут можна додати свої кольори
-              }
-            }
-          }
         }
     </script>
-
-    <script>
-  function forceExpand() {
-    try {
-      if (window.Telegram && window.Telegram.WebApp) {
-        const tg = window.Telegram.WebApp;
-
-        tg.ready();
-        tg.expand(); // Старый метод (пусть будет для надежности)
-
-        // 🔥 ГЛАВНАЯ ФИШКА: Новый метод для API 8.0+
-        // Именно он делает настоящий фуллскрин для Menu Button
-        if (tg.requestFullscreen) {
-            tg.requestFullscreen();
-        }
-
-        try {
-           tg.disableVerticalSwipes();
-        } catch(e) {}
-
-        console.log("🔫 Force Expand + Fullscreen command sent!");
-      }
-    } catch (e) {
-      console.error("Expand Error:", e);
-    }
-  }
-
-  // ... остальной код вызова (interval и т.д.) оставляй как есть
-</script>
-
     <style>
         html, body {
           -webkit-tap-highlight-color: transparent;
-          overscroll-behavior-y: none; /* Забороняємо "гумовий" ефект при скролі */
-          transition: background-color 0.3s ease;
-          background-color: #0f172a; /* Темний фон відразу, щоб не блимало білим */
+          overscroll-behavior-y: none;
+          background-color: #0f172a;
         }
-        /* Ховаємо скролбар, але скрол працює */
         ::-webkit-scrollbar {
           width: 0px;
           background: transparent;
         }
     </style>
-
     <script type="importmap">
         {
           "imports": {
@@ -80,7 +36,7 @@
         }
     </script>
 </head>
-<body class="bg-gray-100 dark:bg-slate-900 text-gray-900 dark:text-white min-h-screen">
+<body class="bg-slate-900 text-white min-h-screen">
 <div id="root"></div>
 <script type="module" src="/index.tsx"></script>
 </body>

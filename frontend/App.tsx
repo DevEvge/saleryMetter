@@ -12,9 +12,7 @@ declare global {
       WebApp: {
         ready: () => void;
         expand: () => void;
-        requestFullscreen?: () => void; // <--- ДОБАВИЛ СЮДА
         enableClosingConfirmation: () => void;
-        disableVerticalSwipes?: () => void; // <--- И ЭТО ПОЛЕЗНО ДОБАВИТЬ
         colorScheme: 'light' | 'dark';
         setHeaderColor: (color: string) => void;
         setBackgroundColor: (color: string) => void;
@@ -41,7 +39,6 @@ const App: React.FC = () => {
     if (tg) {
       tg.ready();
       tg.expand();
-      tg.requestFullscreen();
       tg.enableClosingConfirmation();
 
       try {
