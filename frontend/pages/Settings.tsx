@@ -219,7 +219,6 @@ const Settings: React.FC = () => {
                      value={tempSettings.baseRate || ''}
                      onChange={(e) => handleTempChange('baseRate', e.target.value)}
                      icon={<Coins size={20} className="text-blue-500 dark:text-blue-400"/>}
-                     autoFocus
                   />
                   
                   <Input 

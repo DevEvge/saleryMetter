@@ -97,17 +97,14 @@ const Home: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 flex justify-center items-center bg-white dark:bg-slate-900 z-50">
+      <div className="flex-1 flex justify-center items-center h-screen">
         <Loader2 size={48} className="animate-spin text-blue-600 dark:text-blue-400" />
       </div>
     );
   }
 
   return (
-    <div
-      className="p-4 pb-32 max-w-md mx-auto animate-fade-in relative"
-      style={{ paddingTop: `env(safe-area-inset-top, 0px)` }}
-    >
+    <div className="p-4 pt-0 pb-32 max-w-md mx-auto animate-fade-in relative">
       
       {showSuccess && (
         <div className="absolute top-0 left-4 right-4 z-50 animate-slide-up">
@@ -179,7 +176,6 @@ const Home: React.FC = () => {
                         onChange={(e) => setManualIncome(e.target.value)}
                         icon={<Coins size={20} className="text-blue-500" />}
                         className="mb-0"
-                        autoFocus
                         required
                       />
                   </div>
