@@ -31,19 +31,22 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>(Tab.HOME);
   const [userId, setUserId] = useState<number | null>(null);
 
-  useEffect(() => {
+useEffect(() => {
     // 1. Initialize Telegram Web App
     const tg = window.Telegram?.WebApp;
-    
+
     // Force Dark Mode Logic
-    // We add the class manually to ensure it persists
     document.documentElement.classList.add('dark');
 
     if (tg) {
       tg.ready();
-      tg.expand();
 
-      // Configure Telegram Header to match our Dark Theme (Slate-900: #0f172a)
+      // Розгортаємо на весь екран (тільки в проді)
+      if (!import.meta.env.DEV) {
+         tg.expand();
+      }
+
+      // Встановлюємо правильні кольори під темну тему (Slate-900: #0f172a)
       try {
         tg.setHeaderColor('#0f172a'); 
         tg.setBackgroundColor('#0f172a');
@@ -74,7 +77,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white font-sans selection:bg-blue-500/30">
+    <div className="min-h-screen bg-gray-100 dark:bg-slate-900 text-gray-900 dark:text-white transition-colors font-sans pb-20 pt-[env(safe-area-inset-top)]">
       {/* Убрали pt-24 отсюда, чтобы страницы управляли своим отступом сами */}
       <main className="relative z-10 min-h-screen">
         {renderContent()}
