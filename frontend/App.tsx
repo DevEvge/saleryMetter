@@ -12,6 +12,7 @@ declare global {
       WebApp: {
         ready: () => void;
         expand: () => void;
+        enableClosingConfirmation: () => void; // Добавили новую функцию
         colorScheme: 'light' | 'dark';
         setHeaderColor: (color: string) => void;
         setBackgroundColor: (color: string) => void;
@@ -32,17 +33,16 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
-
-    // 1. Принудительно включаем темную тему для Tailwind
+    
     document.documentElement.classList.add('dark');
 
     if (tg) {
-      // 2. Сообщаем Telegram, что приложение готово
       tg.ready();
       tg.expand();
-      // 3. Устанавливаем цвета интерфейса Telegram
+      tg.enableClosingConfirmation(); // <-- ВОТ ОНА, КОМАНДА ЗАПРЕТА СМАХИВАНИЯ
+
       try {
-        tg.setHeaderColor('#0f172a');
+        tg.setHeaderColor('#0f172a'); 
         tg.setBackgroundColor('#0f172a');
       } catch (e) {
         console.log("Error setting TG colors", e);
@@ -64,7 +64,6 @@ const App: React.FC = () => {
   };
 
   return (
-    // Убрали все сложные стили отсюда. Теперь страницы сами управляют своими отступами.
     <div className="min-h-screen bg-slate-900 text-white font-sans">
       <main>
         {renderContent()}
