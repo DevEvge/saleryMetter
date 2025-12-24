@@ -34,8 +34,19 @@ async function apiFetch(url: string, options: RequestInit = {}) {
 
 // --- Функции для работы с API ---
 
+let settingsPromise: Promise<any> | null = null;
+
 export const fetchSettings = () => {
-  return apiFetch('/api/settings');
+  // Якщо запит вже летить — повертаємо його ж, а не створюємо новий
+  if (settingsPromise) return settingsPromise;
+
+  settingsPromise = apiFetch('/api/settings')
+    .finally(() => {
+      // Через 5 секунд скидаємо кеш, щоб можна було оновити дані пізніше
+      setTimeout(() => { settingsPromise = null; }, 5000);
+    });
+
+  return settingsPromise;
 };
 
 export const saveSettings = (settings: { cost_per_point: number; departure_fee: number; price_per_tone: number }) => {
