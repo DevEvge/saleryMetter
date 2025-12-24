@@ -12,7 +12,9 @@ declare global {
       WebApp: {
         ready: () => void;
         expand: () => void;
-        enableClosingConfirmation: () => void; // Добавили новую функцию
+        requestFullscreen?: () => void; // <--- ДОБАВИЛ СЮДА
+        enableClosingConfirmation: () => void;
+        disableVerticalSwipes?: () => void; // <--- И ЭТО ПОЛЕЗНО ДОБАВИТЬ
         colorScheme: 'light' | 'dark';
         setHeaderColor: (color: string) => void;
         setBackgroundColor: (color: string) => void;
@@ -40,7 +42,7 @@ const App: React.FC = () => {
       tg.ready();
       tg.expand();
       tg.requestFullscreen();
-      tg.enableClosingConfirmation(); // <-- ВОТ ОНА, КОМАНДА ЗАПРЕТА СМАХИВАНИЯ
+      tg.enableClosingConfirmation();
 
       try {
         tg.setHeaderColor('#0f172a'); 
