@@ -106,7 +106,7 @@ const Settings: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex justify-center items-center h-screen">
+      <div className="fixed inset-0 flex justify-center items-center bg-white dark:bg-slate-900 z-50">
         <Loader2 size={48} className="animate-spin text-blue-600 dark:text-blue-400" />
       </div>
     );
@@ -114,7 +114,10 @@ const Settings: React.FC = () => {
   
   if (!settings) {
     return (
-      <div className="p-4 pt-16 text-center">
+      <div
+        className="p-4 text-center"
+        style={{ paddingTop: `calc(env(safe-area-inset-top, 1rem) + 1rem)` }}
+      >
         <h1 className="text-xl text-red-500">Не вдалося завантажити налаштування.</h1>
         <p className="text-gray-400">Спробуйте оновити сторінку.</p>
       </div>
@@ -122,7 +125,10 @@ const Settings: React.FC = () => {
   }
 
   return (
-    <div className="p-4 pt-16 pb-32 max-w-md mx-auto animate-fade-in relative">
+    <div
+      className="p-4 pb-32 max-w-md mx-auto animate-fade-in relative"
+      style={{ paddingTop: `calc(env(safe-area-inset-top, 1rem) + 1rem)` }}
+    >
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 transition-colors">Налаштування</h1>
         <p className="text-gray-500 dark:text-gray-400">Профіль та параметри</p>

@@ -11,7 +11,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 db_path = os.path.join(BASE_DIR, "salary.db")
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{db_path}"
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False, "timeout": 30} # <--- ОСЬ ЦЕ ВАЖЛИВО!
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -89,15 +92,7 @@ class WorkDayCreate(BaseModel):
 # --- APP ---
 app = Flask(__name__)
 # Максимально "широка" конфігурація CORS
-CORS(app, 
-     origins=[
-         "https://salery-metter-40ujtluxf-devevges-projects.vercel.app", 
-         "http://localhost:3000"
-     ], 
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
-     allow_headers=["Content-Type", "X-Telegram-ID", "Authorization", "X-Requested-With"],
-     supports_credentials=True
-)
+CORS(app, resources={r"/*": {"origins": "*"}}, allow_headers=["*", "X-Telegram-ID"])
 
 
 # --- Helper ---

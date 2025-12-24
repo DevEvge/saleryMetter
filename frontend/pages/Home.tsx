@@ -97,14 +97,17 @@ const Home: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex justify-center items-center h-screen">
+      <div className="fixed inset-0 flex justify-center items-center bg-white dark:bg-slate-900 z-50">
         <Loader2 size={48} className="animate-spin text-blue-600 dark:text-blue-400" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 pt-16 pb-32 max-w-md mx-auto animate-fade-in relative">
+    <div
+      className="p-4 pb-32 max-w-md mx-auto animate-fade-in relative"
+      style={{ paddingTop: `calc(env(safe-area-inset-top, 1rem) + 1rem)` }}
+    >
       
       {showSuccess && (
         <div className="absolute top-0 left-4 right-4 z-50 animate-slide-up">

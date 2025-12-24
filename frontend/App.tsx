@@ -75,10 +75,8 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 text-white font-sans selection:bg-blue-500/30">
-      {/* 
-         pt-24 added for Safe Zone / Header spacing.
-      */}
-      <main className="relative z-10 min-h-screen pt-24">
+      {/* Убрали pt-24 отсюда, чтобы страницы управляли своим отступом сами */}
+      <main className="relative z-10 min-h-screen">
         {renderContent()}
       </main>
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />

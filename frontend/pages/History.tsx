@@ -103,7 +103,7 @@ const History: React.FC = () => {
   return (
     <div
       className="p-4 pb-32 max-w-md mx-auto h-full flex flex-col animate-fade-in"
-      style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + 1rem)` }}
+      style={{ paddingTop: `calc(env(safe-area-inset-top, 1rem) + 1rem)` }}
     >
       <div className="flex items-center justify-between mb-6 bg-white dark:bg-gray-800/80 backdrop-blur-md p-2 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm transition-colors">
         <button 
