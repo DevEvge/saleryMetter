@@ -10,7 +10,7 @@ function getTelegramId() {
     // @ts-ignore
     return window.Telegram.WebApp.initDataUnsafe.user.id;
   }
-  return 1; // Тестовый ID для разработки в браузере
+  return 1;
 }
 
 /**
@@ -23,7 +23,7 @@ async function apiFetch(url: string, options: RequestInit = {}) {
     'Content-Type': 'application/json',
   };
 
-  const response = await fetch(url, { ...options, headers });
+  const response = await fetch(`${BASE_URL}${url}`, { ...options, headers });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
