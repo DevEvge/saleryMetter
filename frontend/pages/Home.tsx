@@ -104,7 +104,7 @@ const Home: React.FC = () => {
   }
 
   return (
-    <div className="p-4 pt-0 pb-32 max-w-md mx-auto animate-fade-in relative">
+    <div className="p-4 pt-16 pb-32 max-w-md mx-auto animate-fade-in relative">
       
       {showSuccess && (
         <div className="absolute top-0 left-4 right-4 z-50 animate-slide-up">

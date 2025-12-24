@@ -114,7 +114,7 @@ const Settings: React.FC = () => {
   
   if (!settings) {
     return (
-      <div className="p-4 pt-0 text-center">
+      <div className="p-4 pt-16 text-center">
         <h1 className="text-xl text-red-500">Не вдалося завантажити налаштування.</h1>
         <p className="text-gray-400">Спробуйте оновити сторінку.</p>
       </div>
@@ -122,7 +122,7 @@ const Settings: React.FC = () => {
   }
 
   return (
-    <div className="p-4 pt-0 pb-32 max-w-md mx-auto animate-fade-in relative">
+    <div className="p-4 pt-16 pb-32 max-w-md mx-auto animate-fade-in relative">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 transition-colors">Налаштування</h1>
         <p className="text-gray-500 dark:text-gray-400">Профіль та параметри</p>

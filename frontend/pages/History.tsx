@@ -94,15 +94,18 @@ const History: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex justify-center items-center h-screen">
+      <div className="fixed inset-0 flex justify-center items-center bg-white dark:bg-slate-900 z-50">
         <Loader2 size={48} className="animate-spin text-blue-600 dark:text-blue-400" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 pt-0 pb-32 max-w-md mx-auto h-full flex flex-col animate-fade-in">
-      <div className="flex items-center justify-between mb-6 bg-white dark:bg-gray-800/80 backdrop-blur-md p-2 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm transition-colors mt-2">
+    <div
+      className="p-4 pb-32 max-w-md mx-auto h-full flex flex-col animate-fade-in"
+      style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + 1rem)` }}
+    >
+      <div className="flex items-center justify-between mb-6 bg-white dark:bg-gray-800/80 backdrop-blur-md p-2 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm transition-colors">
         <button 
             onClick={() => handleMonthChange(-1)}
             disabled={isLoading}
