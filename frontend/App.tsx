@@ -5,7 +5,7 @@ import Settings from './pages/Settings';
 import BottomNav from './components/BottomNav';
 import { Tab } from './types';
 
-// Declare Telegram types globally to avoid TS errors
+// Розширюємо типи Telegram, щоб TypeScript не сварився
 declare global {
   interface Window {
     Telegram?: {
@@ -15,6 +15,14 @@ declare global {
         colorScheme: 'light' | 'dark';
         setHeaderColor: (color: string) => void;
         setBackgroundColor: (color: string) => void;
+        onEvent: (eventType: string, callback: () => void) => void;
+        offEvent: (eventType: string, callback: () => void) => void;
+        contentSafeAreaInset?: {
+          top: number;
+          bottom: number;
+          left: number;
+          right: number;
+        };
         initDataUnsafe?: {
           user?: {
             id: number;
@@ -30,55 +38,75 @@ declare global {
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>(Tab.HOME);
   const [userId, setUserId] = useState<number | null>(null);
+  // Стейт для збереження висоти відступу (якщо Telegram нам його дасть)
+  const [safeAreaTop, setSafeAreaTop] = useState<number>(0);
 
-useEffect(() => {
-    // 1. Initialize Telegram Web App
+  useEffect(() => {
     const tg = window.Telegram?.WebApp;
-
-    // Force Dark Mode Logic
+    // Примусово вмикаємо темну тему для Tailwind
     document.documentElement.classList.add('dark');
 
     if (tg) {
       tg.ready();
 
+      // --- ЛОГІКА ВІДСТУПІВ ---
+      const updateSafeArea = () => {
+        // Запитуємо у Телеграма: "Скільки місця займають твої кнопки?"
+        if (tg.contentSafeAreaInset && tg.contentSafeAreaInset.top > 0) {
+          setSafeAreaTop(tg.contentSafeAreaInset.top);
+        } else {
+          // Якщо Телеграм мовчить (0), скидаємо в 0 (тоді спрацює CSS env())
+          setSafeAreaTop(0);
+        }
+      };
+
+      // Запускаємо перевірку одразу
+      updateSafeArea();
+
+      // Підписуємось на зміни (наприклад, якщо користувач поверне екран або розгорне додаток)
+      tg.onEvent('viewportChanged', updateSafeArea);
+
+      // --- КОЛЬОРИ ---
+      try {
+        tg.setHeaderColor('#0f172a');
+        tg.setBackgroundColor('#0f172a');
+      } catch (e) { console.log(e); }
+
       // Розгортаємо на весь екран (тільки в проді)
       if (!import.meta.env.DEV) {
-         tg.expand();
+        tg.expand();
       }
 
-      // Встановлюємо правильні кольори під темну тему (Slate-900: #0f172a)
-      try {
-        tg.setHeaderColor('#0f172a'); 
-        tg.setBackgroundColor('#0f172a');
-      } catch (e) {
-        console.log("Error setting TG colors", e);
-      }
-
-      // Safe User ID Retrieval
       const user = tg.initDataUnsafe?.user;
-      if (user) {
-        setUserId(user.id);
-        console.log("TG User connected:", user.first_name);
-      }
+      if (user) setUserId(user.id);
+
+      // Прибирання підписки при закритті
+      return () => {
+        tg.offEvent('viewportChanged', updateSafeArea);
+      };
     }
   }, []);
 
   const renderContent = () => {
     switch (activeTab) {
-      case Tab.HOME:
-        return <Home />;
-      case Tab.HISTORY:
-        return <History />;
-      case Tab.SETTINGS:
-        return <Settings />;
-      default:
-        return <Home />;
+      case Tab.HOME: return <Home />;
+      case Tab.HISTORY: return <History />;
+      case Tab.SETTINGS: return <Settings />;
+      default: return <Home />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-slate-900 text-gray-900 dark:text-white transition-colors font-sans pb-20 pt-[env(safe-area-inset-top)]">
-      {/* Убрали pt-24 отсюда, чтобы страницы управляли своим отступом сами */}
+    // ГОЛОВНИЙ ФІКС ТУТ:
+    // style={{ paddingTop: ... }} має пріоритет.
+    // Якщо JS отримав цифру > 0, ми ставимо її.
+    // Якщо ні (0), ми використовуємо стандартний env(safe-area-inset-top).
+    <div
+      className="min-h-screen bg-gray-100 dark:bg-slate-900 text-gray-900 dark:text-white transition-colors font-sans pb-20"
+      style={{
+        paddingTop: safeAreaTop > 0 ? `${safeAreaTop}px` : 'env(safe-area-inset-top)'
+      }}
+    >
       <main className="relative z-10 min-h-screen">
         {renderContent()}
       </main>
