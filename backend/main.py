@@ -88,7 +88,16 @@ class WorkDayCreate(BaseModel):
 
 # --- APP ---
 app = Flask(__name__)
-CORS(app)  # Дозволяємо запити з будь-яких джерел
+# Максимально "широка" конфігурація CORS
+CORS(app, 
+     origins=[
+         "https://salery-metter-40ujtluxf-devevges-projects.vercel.app", 
+         "http://localhost:3000"
+     ], 
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
+     allow_headers=["Content-Type", "X-Telegram-ID", "Authorization", "X-Requested-With"],
+     supports_credentials=True
+)
 
 
 # --- Helper ---
@@ -204,8 +213,6 @@ def get_stats(year, month):
         tg_id = get_header_user_id()
         # Формуємо дати
         start_date = f"{year}-{month:02d}-01"
-        # Простий хак для кінця місяця, беремо 31 (SQLAlchemy розбереться навіть якщо в місяці 30 днів при порівнянні string, але краще так)
-        # Або просто фільтруємо за роком і місяцем строково
         end_date = f"{year}-{month:02d}-31"
 
         days = db.query(WorkDay).filter(
