@@ -39,6 +39,7 @@ const App: React.FC = () => {
     if (tg) {
       tg.ready();
       tg.expand();
+      tg.requestFullscreen();
       tg.enableClosingConfirmation(); // <-- ВОТ ОНА, КОМАНДА ЗАПРЕТА СМАХИВАНИЯ
 
       try {

@@ -4,50 +4,12 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
     <meta name="theme-color" content="#0f172a"/>
-    <title>DriverPay UAH</title>
+    <title>DriverPay</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-
-    <script>
-      // Ця функція намагається розширити додаток усіма силами
-      function forceExpand() {
-        try {
-          // Перевіряємо чи є об'єкт Telegram
-          if (window.Telegram && window.Telegram.WebApp) {
-
-            // 1. Кажемо що ми готові
-            window.Telegram.WebApp.ready();
-
-            // 2. Викликаємо розширення
-            window.Telegram.WebApp.expand();
-
-            // 3. Додатково вимикаємо вертикальні свайпи (щоб не закривалось випадково)
-            // Працює з версії 7.7, тому у try/catch
-            try {
-               window.Telegram.WebApp.disableVerticalSwipes();
-            } catch(e) {}
-
-            console.log("🔫 Force Expand command sent!");
-          }
-        } catch (e) {
-          console.error("Expand Error:", e);
-        }
-      }
-
-      // Запускаємо відразу
-      forceExpand();
-
-      // Запускаємо ще раз при повному завантаженні сторінки
-      window.addEventListener('load', forceExpand);
-
-      // 🔥 БОМБАРДУВАННЯ: Викликаємо expand кожні 100мс протягом 2 секунд
-      // Це гарантує, що ми влучимо в той момент, коли Телеграм готовий слухати
-      const intervalId = setInterval(forceExpand, 100);
-      setTimeout(() => clearInterval(intervalId), 2000);
-    </script>
 
     <script>
         tailwind.config = {
