@@ -27,7 +27,12 @@ async function apiFetch(url: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
-    throw new Error(errorData.detail || 'Failed to fetch');
+    console.error("API Error Response:", errorData);
+    let errorMsg = errorData.detail || 'Failed to fetch';
+    if (errorData.error) {
+       errorMsg = JSON.stringify(errorData.error);
+    }
+    throw new Error(errorMsg);
   }
   return response.json();
 }
