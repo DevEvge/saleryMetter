@@ -12,8 +12,13 @@ import {
   Loader2,
   PlusCircle,
   Coins,
-  Route
+  Route,
+  Edit3,
+  X,
+  Save,
+  CircleDollarSign
 } from 'lucide-react';
+import { Input, Button, Card } from '../components/ui';
 import * as apiService from '../services/api';
 
 const History: React.FC = () => {
@@ -27,6 +32,12 @@ const History: React.FC = () => {
     total_days: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+
+  // Edit modal state
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEditSaving, setIsEditSaving] = useState(false);
+  const [editForm, setEditForm] = useState<any>({});
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -65,6 +76,63 @@ const History: React.FC = () => {
     if (confirm("Ви дійсно хочете видалити цей запис?")) {
         await apiService.deleteDay(id);
         fetchData();
+    }
+  };
+
+  const handleEditOpen = (record: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingRecord(record);
+    setEditForm({
+      date: record.date,
+      points: record.points || 0,
+      additional_points: record.additional_points || 0,
+      weight: record.weight || 0,
+      fixed_payment: record.fixed_payment || 0,
+      distance_km: record.distance_km || 0,
+      price_per_km: record.price_per_km || 0,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditChange = (field: string, value: string) => {
+    setEditForm((prev: any) => ({
+      ...prev,
+      [field]: field === 'date' ? value : (parseFloat(value) || 0),
+    }));
+  };
+
+  const handleEditSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRecord) return;
+
+    setIsEditSaving(true);
+    try {
+      const updateData: any = { date: editForm.date };
+
+      if (editingRecord.record_type === 'CITY_MAIN') {
+        updateData.points = editForm.points;
+        updateData.additional_points = editForm.additional_points;
+        updateData.weight = editForm.weight;
+        updateData.fixed_payment = editForm.fixed_payment;
+      } else if (editingRecord.record_type === 'CITY_EXTRA') {
+        updateData.points = editForm.points;
+        updateData.additional_points = editForm.additional_points;
+        updateData.weight = editForm.weight;
+        updateData.manual_payment = editForm.fixed_payment;
+      } else if (editingRecord.record_type === 'INTERCITY') {
+        updateData.distance_km = editForm.distance_km;
+        updateData.price_per_km = editForm.price_per_km;
+      }
+
+      await apiService.updateDay(editingRecord.id, updateData);
+      setIsEditModalOpen(false);
+      setEditingRecord(null);
+      fetchData();
+    } catch (error) {
+      console.error("Failed to update record:", error);
+      alert("Не вдалося оновити запис.");
+    } finally {
+      setIsEditSaving(false);
     }
   };
 
@@ -161,7 +229,7 @@ const History: React.FC = () => {
                     <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center"><Weight size={16} className="text-blue-100" /></div>
                     <div>
                         <p className="text-[10px] text-blue-100 uppercase font-bold">Вага</p>
-                        <p className="font-bold text-sm">{stats.total_weight.toFixed(1)} т</p>
+                        <p className="font-bold text-sm">{stats.total_weight.toFixed(1)} кг</p>
                     </div>
                 </div>
             </div>
@@ -202,9 +270,14 @@ const History: React.FC = () => {
                                         <span className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{record.total_salary} <span className="text-lg font-normal text-gray-400">₴</span></span>
                                     </div>
                                 </div>
-                                <button onClick={(e) => handleDelete(record.id, e)} className="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400">
-                                    <Trash2 size={16} />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                    <button onClick={(e) => handleEditOpen(record, e)} className="p-2 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
+                                        <Edit3 size={16} />
+                                    </button>
+                                    <button onClick={(e) => handleDelete(record.id, e)} className="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
                             </div>
                             
                             <div className="flex gap-2 border-t border-gray-200 dark:border-gray-700/50 pt-3 text-xs">
@@ -217,7 +290,7 @@ const History: React.FC = () => {
                                       <PlusCircle size={14} className="text-gray-500 dark:text-gray-400"/> <span className="font-bold text-gray-800 dark:text-white">{record.additional_points || 0}</span>
                                     </div>
                                     <div className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-gray-900/50 p-2 rounded-lg justify-center">
-                                      <Weight size={14} className="text-gray-500 dark:text-gray-400"/> <span className="font-bold text-gray-800 dark:text-white">{record.weight || 0} т</span>
+                                      <Weight size={14} className="text-gray-500 dark:text-gray-400"/> <span className="font-bold text-gray-800 dark:text-white">{record.weight || 0} кг</span>
                                     </div>
                                   </>
                                 )}
@@ -233,6 +306,146 @@ const History: React.FC = () => {
             )}
           </div>
         </>
+
+      {/* Модалка: Редагування запису */}
+      {isEditModalOpen && editingRecord && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+           <div className="w-full max-w-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-3xl p-6 shadow-2xl relative animate-slide-up max-h-[90vh] overflow-y-auto">
+              
+              <div className="flex items-center justify-between mb-6">
+                 <div>
+                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">Редагування</h2>
+                   <p className={`text-sm font-medium ${getRecordMeta(editingRecord).color}`}>
+                     {getRecordMeta(editingRecord).label}
+                   </p>
+                 </div>
+                 <button 
+                   onClick={() => { setIsEditModalOpen(false); setEditingRecord(null); }}
+                   className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                 >
+                    <X size={20} />
+                 </button>
+              </div>
+
+              <form onSubmit={handleEditSave} className="flex flex-col gap-2">
+                  {/* Дата — спільне для всіх */}
+                  <Input 
+                     label="Дата"
+                     type="date"
+                     value={editForm.date || ''}
+                     onChange={(e) => handleEditChange('date', e.target.value)}
+                     icon={<Calendar size={20} className="text-blue-500 dark:text-blue-400"/>}
+                  />
+
+                  {/* CITY_MAIN */}
+                  {editingRecord.record_type === 'CITY_MAIN' && (
+                    <>
+                      <Input 
+                         label="Оплата за виїзд (грн)"
+                         type="number"
+                         inputMode="decimal"
+                         value={editForm.fixed_payment || ''}
+                         onChange={(e) => handleEditChange('fixed_payment', e.target.value)}
+                         icon={<Coins size={20} className="text-blue-500 dark:text-blue-400"/>}
+                      />
+                      <Input 
+                         label="Кількість точок"
+                         type="number"
+                         inputMode="numeric"
+                         value={editForm.points || ''}
+                         onChange={(e) => handleEditChange('points', e.target.value)}
+                         icon={<MapPin size={20}/>}
+                      />
+                      <Input 
+                         label="Вага (кг)"
+                         type="number"
+                         inputMode="decimal"
+                         value={editForm.weight || ''}
+                         onChange={(e) => handleEditChange('weight', e.target.value)}
+                         icon={<Weight size={20}/>}
+                      />
+                      <Input 
+                         label="Додаткові точки"
+                         type="number"
+                         inputMode="numeric"
+                         value={editForm.additional_points || ''}
+                         onChange={(e) => handleEditChange('additional_points', e.target.value)}
+                         icon={<PlusCircle size={20}/>}
+                         className="mb-6"
+                      />
+                    </>
+                  )}
+
+                  {/* CITY_EXTRA */}
+                  {editingRecord.record_type === 'CITY_EXTRA' && (
+                    <>
+                      <Input 
+                         label="Сума за виїзд (грн)"
+                         type="number"
+                         inputMode="decimal"
+                         value={editForm.fixed_payment || ''}
+                         onChange={(e) => handleEditChange('fixed_payment', e.target.value)}
+                         icon={<Coins size={20} className="text-blue-500 dark:text-blue-400"/>}
+                      />
+                      <Input 
+                         label="Кількість точок"
+                         type="number"
+                         inputMode="numeric"
+                         value={editForm.points || ''}
+                         onChange={(e) => handleEditChange('points', e.target.value)}
+                         icon={<MapPin size={20}/>}
+                      />
+                      <Input 
+                         label="Вага (кг)"
+                         type="number"
+                         inputMode="decimal"
+                         value={editForm.weight || ''}
+                         onChange={(e) => handleEditChange('weight', e.target.value)}
+                         icon={<Weight size={20}/>}
+                      />
+                      <Input 
+                         label="Додаткові точки"
+                         type="number"
+                         inputMode="numeric"
+                         value={editForm.additional_points || ''}
+                         onChange={(e) => handleEditChange('additional_points', e.target.value)}
+                         icon={<PlusCircle size={20}/>}
+                         className="mb-6"
+                      />
+                    </>
+                  )}
+
+                  {/* INTERCITY */}
+                  {editingRecord.record_type === 'INTERCITY' && (
+                    <>
+                      <Input 
+                         label="Відстань (км)"
+                         type="number"
+                         inputMode="decimal"
+                         value={editForm.distance_km || ''}
+                         onChange={(e) => handleEditChange('distance_km', e.target.value)}
+                         icon={<Map size={20}/>}
+                      />
+                      <Input 
+                         label="Ціна за км (грн)"
+                         type="number"
+                         inputMode="decimal"
+                         value={editForm.price_per_km || ''}
+                         onChange={(e) => handleEditChange('price_per_km', e.target.value)}
+                         icon={<CircleDollarSign size={20}/>}
+                         className="mb-6"
+                      />
+                    </>
+                  )}
+
+                  <Button type="submit" className="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/30 dark:shadow-blue-900/50 text-white" disabled={isEditSaving}>
+                     {isEditSaving ? <Loader2 className="animate-spin mr-2" /> : <Save size={20} className="mr-2" />}
+                     {isEditSaving ? 'Збереження...' : 'Зберегти зміни'}
+                  </Button>
+              </form>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

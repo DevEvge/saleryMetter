@@ -9,7 +9,9 @@ import {
   Info,
   Trash2,
   AlertTriangle,
-  Loader2
+  Loader2,
+  RefreshCw,
+  Calendar
 } from 'lucide-react';
 import { Button, Card, Input } from '../components/ui';
 import * as apiService from '../services/api';
@@ -34,11 +36,18 @@ const Settings: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
   const [tempSettings, setTempSettings] = useState<AppSettings>({
     pricePerPoint: 0,
     pricePerTon: 0,
     baseRate: 0,
   });
+
+  // Bulk update state
+  const [bulkDateFrom, setBulkDateFrom] = useState('');
+  const [bulkDateTo, setBulkDateTo] = useState('');
+  const [bulkNewFee, setBulkNewFee] = useState('');
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -64,6 +73,13 @@ const Settings: React.FC = () => {
     }
   };
 
+  const openBulkModal = () => {
+    setBulkDateFrom('');
+    setBulkDateTo('');
+    setBulkNewFee('');
+    setIsBulkModalOpen(true);
+  };
+
   const handleTempChange = (field: keyof AppSettings, value: string) => {
     setTempSettings(prev => ({
       ...prev,
@@ -83,6 +99,35 @@ const Settings: React.FC = () => {
       console.error("Failed to save settings:", error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleBulkUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!bulkDateFrom || !bulkDateTo || !bulkNewFee) {
+      alert('Заповніть всі поля.');
+      return;
+    }
+    if (bulkDateFrom > bulkDateTo) {
+      alert('Дата "від" має бути раніше або дорівнювати даті "до".');
+      return;
+    }
+
+    setIsBulkSaving(true);
+    try {
+      const result = await apiService.bulkUpdateDepartureFee(
+        bulkDateFrom,
+        bulkDateTo,
+        parseFloat(bulkNewFee) || 0
+      );
+      setIsBulkModalOpen(false);
+      alert(`Оновлено ${result.count} записів.`);
+    } catch (error) {
+      console.error("Failed to bulk update:", error);
+      alert("Не вдалося оновити записи.");
+    } finally {
+      setIsBulkSaving(false);
     }
   };
 
@@ -162,7 +207,7 @@ const Settings: React.FC = () => {
                     <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                         <Weight size={20} />
                     </div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">Ціна за тонну</span>
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">Ціна за кг</span>
                  </div>
                  <span className="text-xl font-bold text-gray-900 dark:text-white">{settings.pricePerTon} ₴</span>
               </div>
@@ -172,6 +217,11 @@ const Settings: React.FC = () => {
         <Button onClick={openModal} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 mt-2 shadow-sm">
             <Edit3 size={18} className="mr-2" />
             Змінити тарифи
+        </Button>
+
+        <Button onClick={openBulkModal} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm">
+            <RefreshCw size={18} className="mr-2" />
+            Перерахунок виїзду
         </Button>
 
         <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-800/50">
@@ -191,6 +241,7 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
+      {/* Модалка: Редагування тарифів */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
            <div className="w-full max-w-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-3xl p-6 shadow-2xl relative animate-slide-up">
@@ -225,7 +276,7 @@ const Settings: React.FC = () => {
                   />
 
                   <Input 
-                     label="Ціна за тонну"
+                     label="Ціна за кг"
                      type="number"
                      inputMode="decimal"
                      value={tempSettings.pricePerTon || ''}
@@ -237,6 +288,63 @@ const Settings: React.FC = () => {
                   <Button type="submit" className="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/30 dark:shadow-blue-900/50 text-white" disabled={isSaving}>
                      {isSaving ? <Loader2 className="animate-spin mr-2" /> : <Save size={20} className="mr-2" />}
                      {isSaving ? 'Збереження...' : 'Зберегти зміни'}
+                  </Button>
+              </form>
+           </div>
+        </div>
+      )}
+
+      {/* Модалка: Перерахунок виїзду */}
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+           <div className="w-full max-w-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-3xl p-6 shadow-2xl relative animate-slide-up">
+              
+              <div className="flex items-center justify-between mb-6">
+                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">Перерахунок виїзду</h2>
+                 <button 
+                   onClick={() => setIsBulkModalOpen(false)}
+                   className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                 >
+                    <X size={20} />
+                 </button>
+              </div>
+
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
+                Оновить ставку за виїзд для всіх записів типу «Маршрут» у вказаному діапазоні дат.
+              </p>
+
+              <form onSubmit={handleBulkUpdate} className="flex flex-col gap-2">
+                  <Input 
+                     label="Дата від"
+                     type="date"
+                     value={bulkDateFrom}
+                     onChange={(e) => setBulkDateFrom(e.target.value)}
+                     icon={<Calendar size={20} className="text-blue-500 dark:text-blue-400"/>}
+                     required
+                  />
+                  <Input 
+                     label="Дата до"
+                     type="date"
+                     value={bulkDateTo}
+                     onChange={(e) => setBulkDateTo(e.target.value)}
+                     icon={<Calendar size={20} className="text-blue-500 dark:text-blue-400"/>}
+                     required
+                  />
+                  <Input 
+                     label="Нова ставка за виїзд (грн)"
+                     type="number"
+                     inputMode="decimal"
+                     placeholder="0"
+                     value={bulkNewFee}
+                     onChange={(e) => setBulkNewFee(e.target.value)}
+                     icon={<Coins size={20} className="text-emerald-500 dark:text-emerald-400"/>}
+                     className="mb-8"
+                     required
+                  />
+
+                  <Button type="submit" className="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/30 dark:shadow-blue-900/50 text-white" disabled={isBulkSaving}>
+                     {isBulkSaving ? <Loader2 className="animate-spin mr-2" /> : <RefreshCw size={20} className="mr-2" />}
+                     {isBulkSaving ? 'Оновлення...' : 'Оновити'}
                   </Button>
               </form>
            </div>

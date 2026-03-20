@@ -7,7 +7,7 @@ export interface ShiftRecord {
 
   // Specific fields based on type
   points?: number;       // City
-  weight?: number;       // City (Tons)
+  weight?: number;       // City (KG)
   extraPoints?: number;  // City
   
   manualIncome?: number; // City Extra

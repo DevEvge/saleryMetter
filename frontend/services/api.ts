@@ -78,3 +78,17 @@ export const wipeAllData = () => {
     method: 'DELETE',
   });
 };
+
+export const bulkUpdateDepartureFee = (dateFrom: string, dateTo: string, newFee: number) => {
+  return apiFetch('/api/days/bulk-update-departure', {
+    method: 'PUT',
+    body: JSON.stringify({ date_from: dateFrom, date_to: dateTo, new_departure_fee: newFee }),
+  });
+};
+
+export const updateDay = (dayId: number, data: object) => {
+  return apiFetch(`/api/days/${dayId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+};

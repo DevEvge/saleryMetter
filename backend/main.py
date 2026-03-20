@@ -1,4 +1,6 @@
 import os
+import sqlite3
+from typing import Optional
 from flask import Flask, request, jsonify, abort
 from flask_cors import CORS
 from sqlalchemy import create_engine, Column, Integer, Float, String, Date, desc, BigInteger
@@ -51,6 +53,9 @@ class WorkDay(Base):
     distance_km = Column(Float, default=0.0)
     price_per_km = Column(Float, default=0.0)
     total_salary = Column(Float, default=0.0)
+    # --- Нові колонки: тарифи на момент створення запису ---
+    saved_cost_per_point = Column(Float, default=0.0)
+    saved_price_per_kg = Column(Float, default=0.0)
 
     def to_dict(self):
         return {
@@ -64,11 +69,27 @@ class WorkDay(Base):
             "fixed_payment": self.fixed_payment,
             "distance_km": self.distance_km,
             "price_per_km": self.price_per_km,
-            "total_salary": self.total_salary
+            "total_salary": self.total_salary,
+            "saved_cost_per_point": self.saved_cost_per_point or 0,
+            "saved_price_per_kg": self.saved_price_per_kg or 0,
         }
 
 
 Base.metadata.create_all(bind=engine)
+
+# --- АВТО-МІГРАЦІЯ (додає нові колонки якщо їх немає) ---
+def run_migration():
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    existing = [col[1] for col in cursor.execute("PRAGMA table_info(work_days)").fetchall()]
+    if "saved_cost_per_point" not in existing:
+        cursor.execute("ALTER TABLE work_days ADD COLUMN saved_cost_per_point FLOAT DEFAULT 0")
+    if "saved_price_per_kg" not in existing:
+        cursor.execute("ALTER TABLE work_days ADD COLUMN saved_price_per_kg FLOAT DEFAULT 0")
+    conn.commit()
+    conn.close()
+
+run_migration()
 
 
 # --- Pydantic SCHEMAS (Для валідації) ---
@@ -89,6 +110,23 @@ class WorkDayCreate(BaseModel):
     price_per_km: float = 0.0
 
 
+class BulkUpdateDepartureFee(BaseModel):
+    date_from: date
+    date_to: date
+    new_departure_fee: float
+
+
+class WorkDayUpdate(BaseModel):
+    date: Optional[date] = None
+    points: Optional[int] = None
+    additional_points: Optional[int] = None
+    weight: Optional[float] = None
+    manual_payment: Optional[float] = None
+    distance_km: Optional[float] = None
+    price_per_km: Optional[float] = None
+    fixed_payment: Optional[float] = None
+
+
 # --- APP ---
 app = Flask(__name__)
 # Максимально "широка" конфігурація CORS
@@ -102,6 +140,19 @@ def get_header_user_id():
         return int(request.headers.get("X-Telegram-ID", 1))
     except ValueError:
         return 1
+
+
+def recalculate_salary(record, settings):
+    """Перерахувати зарплату запису, використовуючи збережені тарифи (або fallback на поточні)."""
+    cpp = record.saved_cost_per_point if record.saved_cost_per_point else float(settings.cost_per_point)
+    ppkg = record.saved_price_per_kg if record.saved_price_per_kg else settings.price_per_tone
+
+    if record.record_type == 'CITY_MAIN':
+        record.total_salary = record.fixed_payment + (cpp * (record.points + record.additional_points)) + (record.weight * ppkg)
+    elif record.record_type == 'CITY_EXTRA':
+        record.total_salary = record.fixed_payment + (cpp * (record.points + record.additional_points)) + (record.weight * ppkg)
+    elif record.record_type == 'INTERCITY':
+        record.total_salary = record.distance_km * record.price_per_km
 
 
 # --- API ---
@@ -192,7 +243,10 @@ def add_work_day():
             fixed_payment=fixed_part,
             distance_km=data.distance_km,
             price_per_km=data.price_per_km,
-            total_salary=salary
+            total_salary=salary,
+            # Зберігаємо тарифи на момент створення
+            saved_cost_per_point=float(settings.cost_per_point),
+            saved_price_per_kg=settings.price_per_tone,
         )
         db.add(new_day)
         db.commit()
@@ -244,6 +298,92 @@ def delete_day(day_id):
             db.commit()
             return jsonify({"status": "deleted"})
         return jsonify({"detail": "Record not found"}), 404
+    finally:
+        db.close()
+
+
+# --- НОВИЙ: Масове оновлення оплати за виїзд (метод різниці) ---
+@app.route("/api/days/bulk-update-departure", methods=["PUT"])
+def bulk_update_departure():
+    db = SessionLocal()
+    try:
+        tg_id = get_header_user_id()
+
+        try:
+            data = BulkUpdateDepartureFee(**request.json)
+        except ValidationError as e:
+            return jsonify({"error": e.errors()}), 422
+
+        if data.date_from > data.date_to:
+            return jsonify({"error": "date_from must be <= date_to"}), 422
+
+        records = db.query(WorkDay).filter(
+            WorkDay.telegram_id == tg_id,
+            WorkDay.date.between(data.date_from.isoformat(), data.date_to.isoformat()),
+            WorkDay.record_type == 'CITY_MAIN'
+        ).all()
+
+        count = 0
+        for record in records:
+            old_fixed = record.fixed_payment or 0
+            record.total_salary = record.total_salary - old_fixed + data.new_departure_fee
+            record.fixed_payment = data.new_departure_fee
+            count += 1
+
+        db.commit()
+        return jsonify({"status": "updated", "count": count})
+    finally:
+        db.close()
+
+
+# --- НОВИЙ: Редагування запису ---
+@app.route("/api/days/<int:day_id>", methods=["PUT"])
+def update_day(day_id):
+    db = SessionLocal()
+    try:
+        tg_id = get_header_user_id()
+
+        record = db.query(WorkDay).filter(WorkDay.id == day_id, WorkDay.telegram_id == tg_id).first()
+        if not record:
+            return jsonify({"detail": "Record not found"}), 404
+
+        try:
+            data = WorkDayUpdate(**request.json)
+        except ValidationError as e:
+            return jsonify({"error": e.errors()}), 422
+
+        # Завантажуємо налаштування (потрібні для fallback)
+        settings = db.query(Settings).filter(Settings.telegram_id == tg_id).first()
+        if not settings:
+            settings = Settings(telegram_id=tg_id)
+            db.add(settings)
+            db.commit()
+
+        # Оновлюємо тільки передані поля
+        if data.date is not None:
+            record.date = data.date
+        if data.points is not None:
+            record.points = data.points
+        if data.additional_points is not None:
+            record.additional_points = data.additional_points
+        if data.weight is not None:
+            record.weight = data.weight
+        if data.distance_km is not None:
+            record.distance_km = data.distance_km
+        if data.price_per_km is not None:
+            record.price_per_km = data.price_per_km
+
+        # Оплата за виїзд
+        if data.fixed_payment is not None:
+            record.fixed_payment = data.fixed_payment
+        elif data.manual_payment is not None and record.record_type == 'CITY_EXTRA':
+            record.fixed_payment = data.manual_payment
+
+        # Перерахунок зарплати
+        recalculate_salary(record, settings)
+
+        db.commit()
+        return jsonify({"status": "updated", "salary": record.total_salary})
     finally:
         db.close()
 

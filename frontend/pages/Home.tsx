@@ -192,7 +192,7 @@ const Home: React.FC = () => {
                 required
               />
               <Input
-                label="Вага (тони)"
+                label="Вага (кг)"
                 type="number"
                 inputMode="decimal"
                 placeholder="0.0"
