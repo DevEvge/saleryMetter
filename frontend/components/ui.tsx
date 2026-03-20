@@ -18,7 +18,7 @@ export const Input: React.FC<InputProps> = ({ label, icon, className = '', type,
   return (
     <div className={`flex flex-col gap-2 mb-4 ${className}`}>
       <label className="text-sm font-medium text-gray-500 dark:text-gray-400 ml-1 transition-colors duration-300">{label}</label>
-      <div className="relative w-full rounded-2xl overflow-hidden">
+      <div className="relative w-full rounded-2xl">
         {icon && <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 z-10">{icon}</div>}
         <input
           type={type}
