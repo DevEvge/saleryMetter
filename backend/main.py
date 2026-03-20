@@ -6,7 +6,7 @@ from flask_cors import CORS
 from sqlalchemy import create_engine, Column, Integer, Float, String, Date, desc, BigInteger
 from sqlalchemy.orm import sessionmaker, declarative_base
 from pydantic import BaseModel, ValidationError
-from datetime import date
+import datetime
 
 # --- КОНФИГ БД (Абсолютний шлях) ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -100,7 +100,7 @@ class SettingsUpdate(BaseModel):
 
 
 class WorkDayCreate(BaseModel):
-    date: date
+    date: datetime.date
     record_type: str
     points: int = 0
     additional_points: int = 0
@@ -111,13 +111,13 @@ class WorkDayCreate(BaseModel):
 
 
 class BulkUpdateDepartureFee(BaseModel):
-    date_from: date
-    date_to: date
+    date_from: datetime.date
+    date_to: datetime.date
     new_departure_fee: float
 
 
 class WorkDayUpdate(BaseModel):
-    date: Optional[date] = None
+    date: Optional[datetime.date] = None
     points: Optional[int] = None
     additional_points: Optional[int] = None
     weight: Optional[float] = None

@@ -84,12 +84,12 @@ const History: React.FC = () => {
     setEditingRecord(record);
     setEditForm({
       date: record.date,
-      points: record.points || 0,
-      additional_points: record.additional_points || 0,
-      weight: record.weight || 0,
-      fixed_payment: record.fixed_payment || 0,
-      distance_km: record.distance_km || 0,
-      price_per_km: record.price_per_km || 0,
+      points: record.points?.toString() || '0',
+      additional_points: record.additional_points?.toString() || '0',
+      weight: record.weight?.toString() || '0',
+      fixed_payment: record.fixed_payment !== undefined && record.fixed_payment !== null ? record.fixed_payment.toString() : '0',
+      distance_km: record.distance_km?.toString() || '0',
+      price_per_km: record.price_per_km?.toString() || '0',
     });
     setIsEditModalOpen(true);
   };
@@ -97,7 +97,7 @@ const History: React.FC = () => {
   const handleEditChange = (field: string, value: string) => {
     setEditForm((prev: any) => ({
       ...prev,
-      [field]: field === 'date' ? value : (parseFloat(value) || 0),
+      [field]: value,
     }));
   };
 
@@ -108,20 +108,21 @@ const History: React.FC = () => {
     setIsEditSaving(true);
     try {
       const updateData: any = { date: editForm.date };
+      const parseNum = (v: any) => parseFloat(v) || 0;
 
       if (editingRecord.record_type === 'CITY_MAIN') {
-        updateData.points = editForm.points;
-        updateData.additional_points = editForm.additional_points;
-        updateData.weight = editForm.weight;
-        updateData.fixed_payment = editForm.fixed_payment;
+        updateData.points = parseNum(editForm.points);
+        updateData.additional_points = parseNum(editForm.additional_points);
+        updateData.weight = parseNum(editForm.weight);
+        updateData.fixed_payment = parseNum(editForm.fixed_payment);
       } else if (editingRecord.record_type === 'CITY_EXTRA') {
-        updateData.points = editForm.points;
-        updateData.additional_points = editForm.additional_points;
-        updateData.weight = editForm.weight;
-        updateData.manual_payment = editForm.fixed_payment;
+        updateData.points = parseNum(editForm.points);
+        updateData.additional_points = parseNum(editForm.additional_points);
+        updateData.weight = parseNum(editForm.weight);
+        updateData.manual_payment = parseNum(editForm.fixed_payment);
       } else if (editingRecord.record_type === 'INTERCITY') {
-        updateData.distance_km = editForm.distance_km;
-        updateData.price_per_km = editForm.price_per_km;
+        updateData.distance_km = parseNum(editForm.distance_km);
+        updateData.price_per_km = parseNum(editForm.price_per_km);
       }
 
       await apiService.updateDay(editingRecord.id, updateData);
@@ -344,7 +345,7 @@ const History: React.FC = () => {
                          label="Оплата за виїзд (грн)"
                          type="number"
                          inputMode="decimal"
-                         value={editForm.fixed_payment || ''}
+                         value={editForm.fixed_payment ?? ''}
                          onChange={(e) => handleEditChange('fixed_payment', e.target.value)}
                          icon={<Coins size={20} className="text-blue-500 dark:text-blue-400"/>}
                       />
@@ -352,7 +353,7 @@ const History: React.FC = () => {
                          label="Кількість точок"
                          type="number"
                          inputMode="numeric"
-                         value={editForm.points || ''}
+                         value={editForm.points ?? ''}
                          onChange={(e) => handleEditChange('points', e.target.value)}
                          icon={<MapPin size={20}/>}
                       />
@@ -360,7 +361,7 @@ const History: React.FC = () => {
                          label="Вага (кг)"
                          type="number"
                          inputMode="decimal"
-                         value={editForm.weight || ''}
+                         value={editForm.weight ?? ''}
                          onChange={(e) => handleEditChange('weight', e.target.value)}
                          icon={<Weight size={20}/>}
                       />
@@ -368,7 +369,7 @@ const History: React.FC = () => {
                          label="Додаткові точки"
                          type="number"
                          inputMode="numeric"
-                         value={editForm.additional_points || ''}
+                         value={editForm.additional_points ?? ''}
                          onChange={(e) => handleEditChange('additional_points', e.target.value)}
                          icon={<PlusCircle size={20}/>}
                          className="mb-6"
@@ -383,7 +384,7 @@ const History: React.FC = () => {
                          label="Сума за виїзд (грн)"
                          type="number"
                          inputMode="decimal"
-                         value={editForm.fixed_payment || ''}
+                         value={editForm.fixed_payment ?? ''}
                          onChange={(e) => handleEditChange('fixed_payment', e.target.value)}
                          icon={<Coins size={20} className="text-blue-500 dark:text-blue-400"/>}
                       />
@@ -391,7 +392,7 @@ const History: React.FC = () => {
                          label="Кількість точок"
                          type="number"
                          inputMode="numeric"
-                         value={editForm.points || ''}
+                         value={editForm.points ?? ''}
                          onChange={(e) => handleEditChange('points', e.target.value)}
                          icon={<MapPin size={20}/>}
                       />
@@ -399,7 +400,7 @@ const History: React.FC = () => {
                          label="Вага (кг)"
                          type="number"
                          inputMode="decimal"
-                         value={editForm.weight || ''}
+                         value={editForm.weight ?? ''}
                          onChange={(e) => handleEditChange('weight', e.target.value)}
                          icon={<Weight size={20}/>}
                       />
@@ -407,7 +408,7 @@ const History: React.FC = () => {
                          label="Додаткові точки"
                          type="number"
                          inputMode="numeric"
-                         value={editForm.additional_points || ''}
+                         value={editForm.additional_points ?? ''}
                          onChange={(e) => handleEditChange('additional_points', e.target.value)}
                          icon={<PlusCircle size={20}/>}
                          className="mb-6"
@@ -422,7 +423,7 @@ const History: React.FC = () => {
                          label="Відстань (км)"
                          type="number"
                          inputMode="decimal"
-                         value={editForm.distance_km || ''}
+                         value={editForm.distance_km ?? ''}
                          onChange={(e) => handleEditChange('distance_km', e.target.value)}
                          icon={<Map size={20}/>}
                       />
@@ -430,7 +431,7 @@ const History: React.FC = () => {
                          label="Ціна за км (грн)"
                          type="number"
                          inputMode="decimal"
-                         value={editForm.price_per_km || ''}
+                         value={editForm.price_per_km ?? ''}
                          onChange={(e) => handleEditChange('price_per_km', e.target.value)}
                          icon={<CircleDollarSign size={20}/>}
                          className="mb-6"
