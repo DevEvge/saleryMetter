@@ -18,12 +18,12 @@ export const Input: React.FC<InputProps> = ({ label, icon, className = '', type,
   return (
     <div className={`flex flex-col gap-2 mb-4 min-w-0 ${className}`}>
       <label className="text-sm font-medium text-gray-500 dark:text-gray-400 ml-1 transition-colors duration-300">{label}</label>
-      <div className="relative w-full min-w-0 rounded-2xl">
+      <div className="relative w-full min-w-0 h-14 bg-white dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
         {icon && <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 z-10">{icon}</div>}
         <input
           type={type}
           onWheel={(e) => e.currentTarget.blur()}
-          className={`block w-full min-w-0 box-border max-w-full h-14 bg-white dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-2xl ${isDate ? 'text-base pr-4' : 'text-xl'} text-gray-900 dark:text-white px-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${icon ? 'pl-12' : ''} ${isDate ? 'leading-[3.5rem] [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:leading-[3.5rem]' : ''}`}
+          className={`block w-full h-full bg-transparent border-none ${isDate ? 'text-base pr-4' : 'text-xl'} text-gray-900 dark:text-white px-4 outline-none placeholder-gray-400 dark:placeholder-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${icon ? 'pl-12' : ''} ${isDate ? 'leading-[3.5rem] [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:leading-[3.5rem]' : ''}`}
 
           {...props}
         />
